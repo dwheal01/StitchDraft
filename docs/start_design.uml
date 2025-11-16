@@ -1,0 +1,149 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+
+class ChartSection {
+    - name: str
+    - start_side: str
+    - row_manager: RowManager
+    - node_manager: NodeManager
+    - link_manager: LinkManager
+    - position_calculator: PositionCalculator
+    - marker_manager: MarkerManager
+    - pattern_parser: PatternParser
+    --
+    + get_current_row_num(): int
+    + get_current_num_of_stitches(): int
+    + get_stitches_on_hold(): List[Dict]
+    + place_on_hold(): List[Dict]
+    + place_on_needle(stitches_on_hold: List[Dict], join_side: str): void
+    + get_row_num(side: str): int
+    + add_nodes(row: List[str], side: str, isRound: bool = False): void
+    + add_round(pattern: Union[str, int]): ChartSection
+    + add_row(pattern: Union[str, int], isRound: bool = False): ChartSection
+    + cast_on_start(count: int): void
+    + cast_on(count: int): ChartSection
+    + join(other: ChartSection): ChartSection
+    + place_marker(side: str, position: int): void
+    + get_markers(side: str): List[int]
+    + repeat_rows(row_patterns: List[str], count: int): void
+    + repeat_rounds(row_patterns: List[str], count: int): void
+    + nodes: List[Dict]
+    + links: List[Dict]
+    + rows: List[List[str]]
+    - _create_nodes_for_row(row: List[str], unconsumed_stitches: List[Dict], side: str, row_num: int, anchors: List[float], isRound: bool = False): void
+    - _add_horizontal_links(i: int): void
+    - _validate_row_consumption(consumed: int, produced: int): void
+}
+
+class NodeManager {
+    - nodes: List[Dict]
+    - node_counter: int
+    - last_row_stitches: List[Dict]
+    - last_row_unconsumed_stitches: List[Dict]
+    - stitches_on_hold: List[Dict]
+    - last_row_produced: int
+    --
+    + set_last_row_unconsumed_stitches(unconsumed_stitches: List[Dict]): void
+    + get_stitches_on_hold(): List[Dict]
+    + set_stitches_on_hold(): int
+    + places_stitches_on_needle(stitches_on_hold: List[Dict]): void
+    + set_last_row_produced(produced: int): void
+    + create_stitch_node(stitch: str, fx: float, fy: float, row: int): Dict[str, Any]
+    + create_strand_node(row: int): Dict[str, Any]
+}
+
+class LinkManager {
+    - links: List[Dict]
+    --
+    + add_horizontal_link(source_id: str, target_id: str): void
+    + add_vertical_link(source_id: str, target_id: str): void
+}
+
+class MarkerManager {
+    - markers_rs: List[int]
+    - markers_ws: List[int]
+    --
+    + add_marker(side: str, position: int, num_stitches: int): void
+    + clear_markers(): void
+    + move_marker(side: str, position: int, shift_amount: int, num_stitches: int): void
+    + remove_marker(side: str, position: int): void
+    + get_markers(side: str): List[int]
+}
+
+class RowManager {
+    - rows: List[List[str]]
+    - start_side: str
+    - last_row_side: str
+    --
+    + set_last_row_side(side: str): void
+    + add_round(row: List[str]): void
+    + add_row(row: List[str], isRound: bool = False): void
+    + duplicate_row(index: int): List[str]
+    + is_wrong_side(isRound: bool = False): bool
+    + reverse_row_if_needed(row: List[str], isRound: bool = False): List[str]
+    - _validate_row_index(index: int): void
+}
+
+class PatternParser {
+    - CONSUME_PRODUCE: Dict[str, Tuple[int, int]]
+    - get_markers: Callable[[str], List[int]]
+    - move_marker: Callable[[str, int, int, int], None]
+    - remove_marker: Callable[[str, int], None]
+    --
+    + expand_pattern(pattern: str, available_stitches: int, side: str): Tuple[List[str], int, int, List[int]]
+    - _split_by_sm(pattern: str, side: str): Tuple[List[str], List[int], List[int]]
+    + split_tokens(pattern: str): List[str]
+    + {static} parse_token(token: str): Tuple[str, int]
+}
+
+class PositionCalculator {
+    - DEFAULT_SPACING: float
+    - ROW_HEIGHT: float
+    - BASE_Y_OFFSET: float
+    --
+    + set_guage(sts: int, rows: int): void
+    + centered_array(n: int, spacing: int = None): List[float]
+    + calculate_anchors(row: List[str], side: str, previous_stitches: List[Dict], link_manager: LinkManager, node_counter: int = 0): List[float]
+    - _calculate_from_previous_row(row: List[str], side: str, previous_stitches: List[Dict], link_manager: LinkManager, node_counter: int): List[float]
+    - _add_increase_decrease_links(stitch: str, prev_i: int, current_i: int, previous_stitches: List[Dict], link_manager: LinkManager, node_counter: int): void
+    - _is_regular_stitch(stitch: str): bool
+    - _calculate_increase_decrease_anchor(i: int, prev_i: int, previous_stitches: List[Dict], side: str): float
+    - _center_anchors(anchors: List[float], row: List[str]): List[float]
+}
+
+' Relationships - Composition (ChartSection owns all managers)
+ChartSection *-- RowManager : composition
+ChartSection *-- NodeManager : composition
+ChartSection *-- LinkManager : composition
+ChartSection *-- PositionCalculator : composition
+ChartSection *-- MarkerManager : composition
+ChartSection *-- PatternParser : composition
+
+' Relationships - Usage/Dependencies
+PatternParser ..> MarkerManager : uses\n(via callbacks)
+PositionCalculator --> LinkManager : uses
+PositionCalculator ..> NodeManager : uses\n(node data & counter)
+ChartSection ..> ChartSection : join()
+
+note right of ChartSection
+  ChartSection is the main orchestrator
+  that coordinates all managers to
+  generate knitting charts
+end note
+
+note right of PatternParser
+  PatternParser uses MarkerManager
+  methods via callbacks passed
+  in constructor
+end note
+
+note right of PositionCalculator
+  PositionCalculator uses:
+  - LinkManager to create links
+  - NodeManager's node data structures
+  - NodeManager's node_counter
+end note
+
+@enduml
+
