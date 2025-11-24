@@ -81,6 +81,7 @@ package "Domain Layer" {
     class ChartService {
         - chartRepository: IChartRepository
         - patternProcessor: PatternProcessor
+        - chartFactory: ChartSectionFactory
         --
         + createChart(name: str, config: ChartConfig): ChartSection
         + processPattern(chart: ChartSection, pattern: str): void
@@ -102,6 +103,20 @@ package "Domain Layer" {
         + generateLinks(charSection: ChartSection, previousRow: List[Node], currentRow: List[Node]): List[Link]
         + calculatePositions(charSection: ChartSection, row: List[str], previousStitches: List[Node]): List[Position]
     }
+
+    class ChartSectionFactory {
+        --
+        + create(config: ChartConfig): ChartSection
+        + createWithDefaults(name: str, start_side: str, sts: int, rows: int): ChartSection
+        - createStitchCounter(): StitchCounter
+        - createValidator(): StitchCountValidator
+        - createRowManager(start_side: str): RowManager
+        - createNodeManager(): NodeManager
+        - createLinkManager(): LinkManager
+        - createPositionCalculator(sts: int, rows: int): PositionCalculator
+        - createMarkerManager(): MarkerManager
+        - createPatternParser(markerProvider: IMarkerProvider): PatternParser
+    }
     
     class ChartSection {
         - name: str
@@ -115,6 +130,7 @@ package "Domain Layer" {
         - markerManager: MarkerManager
         - patternParser: PatternParser
         --
+
         + add_row(pattern: str, isRound: bool): ChartSection
         + add_round(pattern: str): ChartSection
         + cast_on_start(count: int): void
@@ -329,44 +345,136 @@ package "Data Layer" {
     }
 }
 
-' Layer relationships
+' ============================================
+' PRESENTATION LAYER RELATIONSHIPS
+' ============================================
 VisualizationView --> ViewModelMapper : uses
 VisualizationView --> ChartViewModel : uses
-ViewModelMapper --> ChartData : converts from
 ChartRenderer --> ChartViewModel : renders
 ChartRenderer --> NodeViewModel : renders
 ChartRenderer --> LinkViewModel : renders
+ViewModelMapper --> ChartData : converts from
+ViewModelMapper --> Node : converts from
+ViewModelMapper --> Link : converts from
+BodyFormTemplateRenderer --> IBodyFormTemplate : uses
+BodyFormTemplateRenderer --> ChartViewModel : uses
+ChartViewModel *-- NodeViewModel : contains
+ChartViewModel *-- LinkViewModel : contains
+UIController --> VisualizationView : controls
 
+' ============================================
+' DOMAIN LAYER - SERVICE & FACTORY
+' ============================================
 ChartService --> IChartRepository : uses
 ChartService --> PatternProcessor : uses
 ChartService --> ChartGenerator : uses
 ChartService --> ChartSection : creates/manages
+ChartService --> ChartSectionFactory : uses
+ChartService --> ChartDataSerializer : uses
+ChartService --> ChartConfig : uses
 
-PatternProcessor --> PatternParser : uses
-PatternProcessor ..> PatternContext: uses
+ChartSectionFactory --> ChartSection : creates
+ChartSectionFactory --> StitchCounter : creates
+ChartSectionFactory --> StitchCountValidator : creates
+ChartSectionFactory --> RowManager : creates
+ChartSectionFactory --> NodeManager : creates
+ChartSectionFactory --> LinkManager : creates
+ChartSectionFactory --> PositionCalculator : creates
+ChartSectionFactory --> MarkerManager : creates
+ChartSectionFactory --> PatternParser : creates
+ChartSectionFactory --> ChartConfig : uses
+ChartSectionFactory ..> IMarkerProvider : uses
 
-ChartGenerator ..> ChartSection : uses\n(delegation)
-ChartGenerator --> NodeManager : uses\n(via ChartSection)
-ChartGenerator --> LinkManager : uses\n(via ChartSection)
-ChartGenerator --> PositionCalculator : uses\n(via ChartSection)
-
+' ============================================
+' DOMAIN LAYER - CHART SECTION COMPOSITION
+' ============================================
 ChartSection *-- RowManager : composition
 ChartSection *-- NodeManager : composition
 ChartSection *-- LinkManager : composition
 ChartSection *-- PositionCalculator : composition
 ChartSection *-- MarkerManager : composition
 ChartSection *-- PatternParser : composition
+ChartSection *-- StitchCounter : composition
+ChartSection *-- StitchCountValidator : composition
 
-ChartRepository --> ChartData : stores/loads
-ChartRepository ..|> IChartRepository
-ChartData *-- Node : contains
-ChartData *-- Link : contains
+' ============================================
+' DOMAIN LAYER - PROCESSOR & GENERATOR
+' ============================================
+PatternProcessor --> PatternParser : uses
+PatternProcessor --> PatternValidator : uses
+PatternProcessor ..> PatternContext : uses
+PatternProcessor --> ExpandedPattern : returns
 
+ChartGenerator ..> ChartSection : uses\n(delegation)
+ChartGenerator --> NodeManager : uses\n(via ChartSection)
+ChartGenerator --> LinkManager : uses\n(via ChartSection)
+ChartGenerator --> PositionCalculator : uses\n(via ChartSection)
+ChartGenerator --> OrderValidator : uses
+ChartGenerator --> Node : creates
+ChartGenerator --> Link : creates
+
+' ============================================
+' DOMAIN LAYER - PARSER & MARKER
+' ============================================
 PatternParser ..> IMarkerProvider : uses
 MarkerManager ..|> IMarkerProvider : implements
 
+' ============================================
+' DOMAIN LAYER - POSITION CALCULATOR
+' ============================================
 PositionCalculator --> LinkManager : uses
 PositionCalculator ..> NodeManager : uses
+
+' ============================================
+' DOMAIN LAYER - VALIDATORS
+' ============================================
+StitchCountValidator --> ValidationResult : returns
+PatternValidator --> ValidationResult : returns
+OrderValidator --> ValidationResult : returns
+OrderValidator --> Node : validates
+OrderValidator --> Link : validates
+ChartSection --> StitchCountValidator : uses
+
+' ============================================
+' DOMAIN LAYER - OPERATIONS
+' ============================================
+OperationRegistry --> IChartOperation : manages
+CastOnOperation ..|> IChartOperation : implements
+AddRowOperation ..|> IChartOperation : implements
+ShortRowOperation ..|> IChartOperation : implements
+CastOnOperation --> ChartSection : operates on
+AddRowOperation --> ChartSection : operates on
+ShortRowOperation --> ChartSection : operates on
+CastOnOperation ..> PatternContext : uses
+AddRowOperation ..> PatternContext : uses
+ShortRowOperation ..> PatternContext : uses
+CastOnOperation --> ValidationResult : returns
+AddRowOperation --> ValidationResult : returns
+ShortRowOperation --> ValidationResult : returns
+
+' ============================================
+' DATA LAYER RELATIONSHIPS
+' ============================================
+ChartRepository --> ChartData : stores/loads
+ChartRepository ..|> IChartRepository : implements
+ChartRepository --> ChartDataValidator : uses
+ChartRepository --> ChartDataSerializer : uses
+ChartDataValidator --> ValidationResult : returns
+ChartDataValidator --> ChartData : validates
+ChartDataValidator --> Node : validates
+ChartDataValidator --> Link : validates
+ChartDataSerializer --> ChartSection : serializes
+ChartDataSerializer --> ChartData : creates
+ChartDataSerializer --> Node : orders
+ChartDataSerializer --> Link : orders
+ChartData *-- Node : contains
+ChartData *-- Link : contains
+
+' ============================================
+' DOMAIN TO DATA LAYER (Data Models)
+' ============================================
+NodeManager --> Node : creates
+LinkManager --> Link : creates
 
 note right of "Presentation Layer"
   **Responsibilities:**
