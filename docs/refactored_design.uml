@@ -180,6 +180,34 @@ package "Domain Layer" {
         + move_marker(side: str, position: int, shift_amount: int, num_stitches: int): void
         + remove_marker(side: str, position: int): void
     }
+
+    class StitchCountValidator {
+        --
+        + validateStitchCount(current: int, expected: int): void
+        + validateNoNegative(count: int): void
+        + validateBindOff(available: int, toBindOff: int): void
+        + validateOperation(operation: str, available: int): ValidationResult
+    }
+    
+    class PatternValidator {
+        --
+        + validatePatternSyntax(pattern: str): ValidationResult
+        + validateStitchInstructions(instructions: List[str]): ValidationResult
+        + validateMarkerPlacement(position: int, numStitches: int): ValidationResult
+    }
+    
+    class OrderValidator {
+        --
+        + validateNodeOrder(nodes: List[Node]): ValidationResult
+        + validateLinkOrder(links: List[Link]): ValidationResult
+        + validateStitchIndexAlignment(nodes: List[Node]): ValidationResult
+    }
+    
+    class ValidationResult {
+        + isValid: bool
+        + errors: List[str]
+        + raiseIfInvalid(): void
+    }
 }
 
 package "Data Layer" {
