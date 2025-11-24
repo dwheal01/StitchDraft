@@ -26,12 +26,13 @@ package "Presentation Layer" {
     class VisualizationView {
         - svg: SVGElement
         - chartsData: List[ChartViewModel]
+        - mapper: ViewModelMapper
         --
         + renderChart(chartData: ChartViewModel): void
+        + loadChartsData(): void
         + switchTab(chartIndex: int): void
         + downloadSVG(chartIndex: int): void
         - initializeD3Visualization(): void
-        - loadChartsData(): void
     }
     
     class ChartRenderer {
@@ -59,7 +60,7 @@ package "Presentation Layer" {
 }
 
 package "Domain Layer" {
-    class ICharRepository {
+    class IChartRepository {
       + saveChart(chartData: ChartData): void
       + loadChart(name: str): ChartData
       + loadAllCharts(): List[ChartData]
@@ -113,12 +114,16 @@ package "Domain Layer" {
         + place_on_hold(): List[Dict]
         + place_on_needle(stitches: List[Dict], side: str): void
     }
+
+    class IMarkerProvider {
+        + get_markers(side: str): List[int]
+        + move_marker(side: str, position: int, shift_amount: int, num_stitches: int): void
+        + remove_marker(side: str, position: int): void
+    }
     
     class PatternParser {
         - CONSUME_PRODUCE: Dict[str, Tuple[int, int]]
-        - get_markers: Callable
-        - move_marker: Callable
-        - remove_marker: Callable
+        - markerProvider: IMarkerProvider
         --
         + expand_pattern(pattern: str, available_stitches: int, side: str): ExpandedPattern
         + split_tokens(pattern: str): List[str]
@@ -230,15 +235,14 @@ package "Data Layer" {
 }
 
 ' Layer relationships
-VisualizationView --> ChartService : uses
-ChartService --> ViewModelMapper : creates
-ViewModelMapper --> ChartData : converts from
+VisualizationView --> ViewModelMapper : uses
 VisualizationView --> ChartViewModel : uses
+ViewModelMapper --> ChartData : converts from
 ChartRenderer --> ChartViewModel : renders
 ChartRenderer --> NodeViewModel : renders
 ChartRenderer --> LinkViewModel : renders
 
-ChartService --> ChartRepository : uses
+ChartService --> IChartRepository : uses
 ChartService --> PatternProcessor : uses
 ChartService --> ChartGenerator : uses
 ChartService --> ChartSection : creates/manages
@@ -259,11 +263,13 @@ ChartSection *-- MarkerManager : composition
 ChartSection *-- PatternParser : composition
 
 ChartRepository --> ChartData : stores/loads
-ChartRepository ..|> ICharRepository
+ChartRepository ..|> IChartRepository
 ChartData *-- Node : contains
 ChartData *-- Link : contains
 
-PatternParser ..> MarkerManager : uses\n(via callbacks)
+PatternParser ..> IMarkerProvider : uses
+MarkerManager ..|> IMarkerProvider : implements
+
 PositionCalculator --> LinkManager : uses
 PositionCalculator ..> NodeManager : uses
 
