@@ -4,11 +4,30 @@ skinparam classAttributeIconSize 0
 skinparam componentStyle rectangle
 
 package "Presentation Layer" {
+    class ChartViewModel {
+        + name: str
+        + nodes: List<NodeViewModel>
+        + links: List<LinkViewModel>
+    }
+    
+    class NodeViewModel {
+        + id: str
+        + type: str
+        + x: float
+        + y: float
+        + row: int
+    }
+    
+    class LinkViewModel {
+        + sourceId: str
+        + targetId: str
+    }
+
     class VisualizationView {
         - svg: SVGElement
-        - chartsData: List[ChartData]
+        - chartsData: List[ChartViewModel]
         --
-        + renderChart(chartData: ChartData): void
+        + renderChart(chartData: ChartViewModel): void
         + switchTab(chartIndex: int): void
         + downloadSVG(chartIndex: int): void
         - initializeD3Visualization(): void
@@ -18,10 +37,16 @@ package "Presentation Layer" {
     class ChartRenderer {
         - d3Selection: Selection
         --
-        + renderNodes(nodes: List[Node]): void
-        + renderLinks(links: List[Link]): void
+        + renderNodes(nodes: List[NodeViewModel]): void
+        + renderLinks(links: List[LinkViewModel]): void
         + applyStyling(): void
         - calculateLayout(): void
+    }
+
+    class ViewModelMapper {
+        + toViewModel(chartData: ChartData): ChartViewModel
+        + toNodeViewModel(node: Node): NodeViewModel
+        + toLinkViewModel(link: Link): LinkViewModel
     }
     
     class UIController {
@@ -206,8 +231,12 @@ package "Data Layer" {
 
 ' Layer relationships
 VisualizationView --> ChartService : uses
-UIController --> VisualizationView : controls
-ChartRenderer --> ChartData : renders
+ChartService --> ViewModelMapper : creates
+ViewModelMapper --> ChartData : converts from
+VisualizationView --> ChartViewModel : uses
+ChartRenderer --> ChartViewModel : renders
+ChartRenderer --> NodeViewModel : renders
+ChartRenderer --> LinkViewModel : renders
 
 ChartService --> ChartRepository : uses
 ChartService --> PatternProcessor : uses
