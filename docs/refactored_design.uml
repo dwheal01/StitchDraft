@@ -61,10 +61,6 @@ package "Domain Layer" {
     }
     
     class ChartGenerator {
-        - nodeManager: NodeManager
-        - linkManager: LinkManager
-        - positionCalculator: PositionCalculator
-        - markerManager: MarkerManager
         --
         + generateNodes(row: List[str], context: GenerationContext): List[Node]
         + generateLinks(previousRow: List[Node], currentRow: List[Node]): List[Link]
@@ -221,9 +217,10 @@ PatternProcessor --> PatternParser : uses
 PatternProcessor --> RowManager : uses
 PatternProcessor --> MarkerManager : uses
 
-ChartGenerator --> NodeManager : uses
-ChartGenerator --> LinkManager : uses
-ChartGenerator --> PositionCalculator : uses
+ChartGenerator ..> ChartSection : uses\n(delegation)
+ChartGenerator --> NodeManager : uses\n(via ChartSection)
+ChartGenerator --> LinkManager : uses\n(via ChartSection)
+ChartGenerator --> PositionCalculator : uses\n(via ChartSection)
 
 ChartSection *-- RowManager : composition
 ChartSection *-- NodeManager : composition
