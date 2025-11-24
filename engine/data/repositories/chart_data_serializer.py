@@ -149,7 +149,7 @@ class ChartDataSerializer:
             "target": link.target
         }
         
-        def serialize_deterministic_from_chart_data(self, chart_data: ChartData) -> str:
+    def serialize_deterministic_from_chart_data(self, chart_data: ChartData) -> str:
         """
         Serialize ChartData to JSON string with deterministic ordering.
         
