@@ -57,10 +57,21 @@ package "Presentation Layer" {
         + handleDownload(index: int): void
         + handleUserInteraction(): void
     }
+
+    interface IBodyFormTemplate {
+        + applyTransform(nodes: List<NodeViewModel>): List<NodeViewModel>
+        + getTemplateData(): Dict
+    }
+    
+    class BodyFormTemplateRenderer {
+        - template: IBodyFormTemplate
+        --
+        + renderWithTemplate(chart: ChartViewModel, template: IBodyFormTemplate): void
+    }
 }
 
 package "Domain Layer" {
-    class IChartRepository {
+    interface IChartRepository {
       + saveChart(chartData: ChartData): void
       + loadChart(name: str): ChartData
       + loadAllCharts(): List[ChartData]
@@ -95,6 +106,8 @@ package "Domain Layer" {
     class ChartSection {
         - name: str
         - start_side: str
+        - stitchCounter: StitchCounter
+        - validator: StitchCountValidator
         - rowManager: RowManager
         - nodeManager: NodeManager
         - linkManager: LinkManager
@@ -115,7 +128,7 @@ package "Domain Layer" {
         + place_on_needle(stitches: List[Dict], side: str): void
     }
 
-    class IMarkerProvider {
+    interface IMarkerProvider {
         + get_markers(side: str): List[int]
         + move_marker(side: str, position: int, shift_amount: int, num_stitches: int): void
         + remove_marker(side: str, position: int): void
@@ -208,6 +221,43 @@ package "Domain Layer" {
         + errors: List[str]
         + raiseIfInvalid(): void
     }
+
+    class StitchCounter {
+      - currentCount: int
+      - history: List[StitchCountEvent]
+      --
+      + getCurrentCount(): int
+      + recordOperation(operation: str, consumed: int, produced: int): void
+      + validateConsistency(): void
+      + getHistory(): List[StitchCountEvent]
+   }
+
+    interface IChartOperation {
+        + execute(chart: ChartSection, params: Dict): ChartSection
+        + validate(params: Dict, context: PatternContext): ValidationResult
+    }
+    
+    class CastOnOperation {
+        + execute(chart: ChartSection, params: Dict): ChartSection
+        + validate(params: Dict, context: PatternContext): ValidationResult
+    }
+    
+    class AddRowOperation {
+        + execute(chart: ChartSection, params: Dict): ChartSection
+        + validate(params: Dict, context: PatternContext): ValidationResult
+    }
+    
+    class ShortRowOperation {
+        + execute(chart: ChartSection, params: Dict): ChartSection
+        + validate(params: Dict, context: PatternContext): ValidationResult
+    }
+    
+    class OperationRegistry {
+        - operations: Dict[str, IChartOperation]
+        --
+        + register(name: str, operation: IChartOperation): void
+        + getOperation(name: str): IChartOperation
+    }
 }
 
 package "Data Layer" {
@@ -215,6 +265,14 @@ package "Data Layer" {
         + name: str
         + nodes: List[Node]
         + links: List[Link]
+    }
+
+    class ChartDataSerializer {
+        --
+        + serialize(chart: ChartSection): str
+        + serializeDeterministic(chart: ChartSection): str
+        + orderNodes(nodes: List[Node]): List[Node]
+        + orderLinks(links: List[Link]): List[Link]
     }
     
     class Node {
@@ -236,9 +294,18 @@ package "Data Layer" {
         + sts: int
         + rows: int
     }
+
+    class ChartDataValidator {
+        --
+        + validateChartData(data: Dict): ValidationResult
+        + validateNodeStructure(node: Dict): ValidationResult
+        + validateLinkStructure(link: Dict): ValidationResult
+        + validateRequiredFields(data: Dict): ValidationResult
+    }
     
     class ChartRepository {
         - dataPath: str
+        - validator: ChartDataValidator
         --
         + saveChart(chartData: ChartData): void
         + loadChart(name: str): ChartData
