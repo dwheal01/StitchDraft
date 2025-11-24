@@ -1,8 +1,10 @@
-from typing import List, Dict, Any
-from engine.chart_section import ChartSection
+from typing import List, Dict, Any, TYPE_CHECKING
 from engine.data.models.node import Node
 from engine.data.models.link import Link
 from engine.data.models.generation_context import GenerationContext
+
+if TYPE_CHECKING:
+    from engine.chart_section import ChartSection
 
 class ChartGenerator:
     """Generates nodes and links for chart sections."""
@@ -13,11 +15,13 @@ class ChartGenerator:
     
     def generate_nodes(
         self, 
-        chart: ChartSection, 
+        chart: 'ChartSection', 
         row: List[str], 
         context: GenerationContext
     ) -> List[Node]:
         """Generate nodes for a row of stitches."""
+        # Import at runtime to avoid circular import
+        from engine.chart_section import ChartSection
         nodes = []
         anchors, unconsumed_stitches = chart.position_calculator.calculate_anchors(
             row, 
@@ -47,7 +51,7 @@ class ChartGenerator:
     
     def generate_links(
         self, 
-        chart: ChartSection, 
+        chart: 'ChartSection', 
         previous_row: List[Node], 
         current_row: List[Node]
     ) -> List[Link]:
@@ -59,7 +63,7 @@ class ChartGenerator:
     
     def calculate_positions(
         self, 
-        chart: ChartSection, 
+        chart: 'ChartSection', 
         row: List[str], 
         previous_stitches: List[Node]
     ) -> List[float]:
@@ -75,12 +79,15 @@ class ChartGenerator:
     
     def create_nodes_for_row(
         self, 
-        chart: ChartSection, 
+        chart: 'ChartSection', 
         row: List[str], 
         side: str, 
         row_num: int
     ) -> None:
         """Create nodes for a row and update chart state."""
+        # Import at runtime to avoid circular import
+        from engine.chart_section import ChartSection
+        
         # Get previous stitches
         previous_stitches = chart.node_manager.last_row_stitches
         
@@ -125,7 +132,7 @@ class ChartGenerator:
         chart.node_manager.last_row_stitches.extend(unconsumed_stitches)
         chart.node_manager.set_last_row_unconsumed_stitches(unconsumed_stitches)
     
-    def add_horizontal_links(self, chart: ChartSection, index: int) -> None:
+    def add_horizontal_links(self, chart: 'ChartSection', index: int) -> None:
         """Add horizontal links between stitches."""
         current_id = f"{chart.node_manager.node_counter - 1}"
         strand_id = f"{chart.node_manager.node_counter - 1}s"

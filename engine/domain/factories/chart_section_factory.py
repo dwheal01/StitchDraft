@@ -51,25 +51,23 @@ class ChartSectionFactory:
         # stitch_counter = self._create_stitch_counter()
         # validator = self._create_validator()
         
-        # Create ChartSection with dependency injection
-        # TODO: ChartSection needs to be refactored to accept these dependencies
-        # For now, using the existing constructor (backward compatible)
+                # Create ChartSection with dependency injection
         chart_section = ChartSection(
             name=config.name,
             start_side=config.start_side,
-            sts=config.sts,
-            rows=config.rows
+            row_manager=row_manager,
+            node_manager=node_manager,
+            link_manager=link_manager,
+            position_calculator=position_calculator,
+            marker_manager=marker_manager,
+            pattern_parser=pattern_parser,
+            chart_generator=chart_generator,
+            operation_registry=operation_registry
         )
         
-        # Create ChartQueries after ChartSection exists
+        # ChartQueries needs ChartSection, so create it after and set it
         chart_queries = self._create_chart_queries(chart_section)
-        
-        # Wire up the new dependencies
-        # TODO: Once ChartSection is refactored for DI, these will be passed in constructor
-        # For now, we'll set them as attributes (temporary approach)
-        chart_section.chart_generator = chart_generator
         chart_section.chart_queries = chart_queries
-        chart_section.operation_registry = operation_registry
         
         return chart_section
     

@@ -1,11 +1,15 @@
-from typing import List, Dict, Any
-from engine.chart_section import ChartSection
+from typing import List, Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from engine.chart_section import ChartSection
 
 class ChartQueries:
     """Query interface for ChartSection data."""
     
-    def __init__(self, chart: ChartSection):
-        self._chart = chart
+    def __init__(self, chart: 'ChartSection'):
+        # Import at runtime to avoid circular import
+        from engine.chart_section import ChartSection
+        self._chart: ChartSection = chart
     
     def get_current_num_of_stitches(self) -> int:
         """Get the current number of stitches in the chart."""
