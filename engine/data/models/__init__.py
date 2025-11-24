@@ -7,6 +7,8 @@ from engine.data.models.pattern_context import PatternContext
 from engine.data.models.expanded_pattern import ExpandedPattern
 from engine.data.models.validation_results import ValidationResult
 from engine.data.models.chart_state_event import ChartStateEvent
+from engine.data.models.generation_context import GenerationContext
+
 
 __all__ = [
     'Node',
@@ -17,4 +19,5 @@ __all__ = [
     'ExpandedPattern',
     'ValidationResult',
     'ChartStateEvent',
+    'GenerationContext',
 ]
