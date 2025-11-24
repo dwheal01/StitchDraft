@@ -6,11 +6,17 @@ from engine.link_manager import LinkManager
 from engine.position_calculator import PositionCalculator
 from engine.marker_manager import MarkerManager
 from engine.pattern_parser import PatternParser
+from engine.chart_section import ChartSection
+from engine.domain.models.chart_queries import ChartQueries
+from engine.domain.models.chart_generator import ChartGenerator
+from engine.domain.models.operation_registry import OperationRegistry
+from engine.domain.models.operations.place_on_hold_operation import PlaceOnHoldOperation
+from engine.domain.models.operations.place_on_needle_operation import PlaceOnNeedleOperation
+from engine.domain.models.operations.join_operation import JoinOperation
 
 # Note: StitchCounter and StitchCountValidator will be added later
 # from engine.domain.models.stitch_counter import StitchCounter
 # from engine.domain.models.stitch_count_validator import StitchCountValidator
-from engine.chart_section import ChartSection
 
 
 class ChartSectionFactory:
@@ -34,16 +40,20 @@ class ChartSectionFactory:
         marker_manager = self._create_marker_manager()
         
         # Create PatternParser with MarkerManager as IMarkerProvider
-        # Note: PatternParser currently uses callbacks, but MarkerManager implements IMarkerProvider
         pattern_parser = self._create_pattern_parser(marker_manager)
+        
+        # Create new refactored components
+        chart_generator = self._create_chart_generator(position_calculator)
+        chart_queries = None  # Will be created after ChartSection
+        operation_registry = self._create_operation_registry()
         
         # Create validators and counters (will be implemented later)
         # stitch_counter = self._create_stitch_counter()
         # validator = self._create_validator()
         
         # Create ChartSection with dependency injection
-        # For now, we'll use the existing ChartSection constructor
-        # Later, we'll refactor ChartSection to accept all dependencies
+        # TODO: ChartSection needs to be refactored to accept these dependencies
+        # For now, using the existing constructor (backward compatible)
         chart_section = ChartSection(
             name=config.name,
             start_side=config.start_side,
@@ -51,19 +61,15 @@ class ChartSectionFactory:
             rows=config.rows
         )
         
-        # TODO: Once ChartSection is refactored to use DI, replace above with:
-        # chart_section = ChartSection(
-        #     name=config.name,
-        #     start_side=config.start_side,
-        #     row_manager=row_manager,
-        #     node_manager=node_manager,
-        #     link_manager=link_manager,
-        #     position_calculator=position_calculator,
-        #     marker_manager=marker_manager,
-        #     pattern_parser=pattern_parser,
-        #     stitch_counter=stitch_counter,
-        #     validator=validator
-        # )
+        # Create ChartQueries after ChartSection exists
+        chart_queries = self._create_chart_queries(chart_section)
+        
+        # Wire up the new dependencies
+        # TODO: Once ChartSection is refactored for DI, these will be passed in constructor
+        # For now, we'll set them as attributes (temporary approach)
+        chart_section.chart_generator = chart_generator
+        chart_section.chart_queries = chart_queries
+        chart_section.operation_registry = operation_registry
         
         return chart_section
     
@@ -128,6 +134,25 @@ class ChartSectionFactory:
             move_marker=marker_manager.move_marker,
             remove_marker=marker_manager.remove_marker
         )
+    
+    def _create_chart_generator(self, position_calculator: PositionCalculator) -> ChartGenerator:
+        """Create a ChartGenerator instance."""
+        return ChartGenerator(position_calculator=position_calculator)
+    
+    def _create_chart_queries(self, chart: ChartSection) -> ChartQueries:
+        """Create a ChartQueries instance."""
+        return ChartQueries(chart)
+    
+    def _create_operation_registry(self) -> OperationRegistry:
+        """Create and configure an OperationRegistry with all operations."""
+        registry = OperationRegistry()
+        
+        # Register all operations
+        registry.register('place_on_hold', PlaceOnHoldOperation())
+        registry.register('place_on_needle', PlaceOnNeedleOperation())
+        registry.register('join', JoinOperation())
+        
+        return registry
     
     # TODO: Implement these when StitchCounter and validators are created
     # def _create_stitch_counter(self) -> StitchCounter:
