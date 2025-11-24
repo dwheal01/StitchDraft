@@ -53,18 +53,17 @@ package "Domain Layer" {
     
     class PatternProcessor {
         - patternParser: PatternParser
-        - rowManager: RowManager
         --
         + expandPattern(pattern: str, context: PatternContext): ExpandedPattern
-        + validatePattern(pattern: str): bool
-        + processMarkers(pattern: str, markers: List[Marker]): void
+        + validatePattern(pattern: str, context: PatternContext): bool
+        + processMarkers(pattern: str, context: PatternContext): void
     }
     
     class ChartGenerator {
         --
-        + generateNodes(row: List[str], context: GenerationContext): List[Node]
-        + generateLinks(previousRow: List[Node], currentRow: List[Node]): List[Link]
-        + calculatePositions(row: List[str], previousStitches: List[Node]): List[Position]
+        + generateNodes(charSection: ChartSection, row: List[str], context: GenerationContext): List[Node]
+        + generateLinks(charSection: ChartSection, previousRow: List[Node], currentRow: List[Node]): List[Link]
+        + calculatePositions(charSection: ChartSection, row: List[str], previousStitches: List[Node]): List[Position]
     }
     
     class ChartSection {
@@ -193,6 +192,8 @@ package "Data Layer" {
         + available_stitches: int
         + side: str
         + markers: List[Marker]
+        + last_row_side: str
+        + is_round: bool
     }
     
     class ExpandedPattern {
@@ -214,8 +215,7 @@ ChartService --> ChartGenerator : uses
 ChartService --> ChartSection : creates/manages
 
 PatternProcessor --> PatternParser : uses
-PatternProcessor --> RowManager : uses
-PatternProcessor --> MarkerManager : uses
+PatternProcessor ..> PatternContext: uses
 
 ChartGenerator ..> ChartSection : uses\n(delegation)
 ChartGenerator --> NodeManager : uses\n(via ChartSection)
