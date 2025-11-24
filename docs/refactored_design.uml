@@ -1,0 +1,270 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam componentStyle rectangle
+
+package "Presentation Layer" {
+    class VisualizationView {
+        - svg: SVGElement
+        - chartsData: List[ChartData]
+        --
+        + renderChart(chartData: ChartData): void
+        + switchTab(chartIndex: int): void
+        + downloadSVG(chartIndex: int): void
+        - initializeD3Visualization(): void
+        - loadChartsData(): void
+    }
+    
+    class ChartRenderer {
+        - d3Selection: Selection
+        --
+        + renderNodes(nodes: List[Node]): void
+        + renderLinks(links: List[Link]): void
+        + applyStyling(): void
+        - calculateLayout(): void
+    }
+    
+    class UIController {
+        - view: VisualizationView
+        --
+        + handleTabSwitch(index: int): void
+        + handleDownload(index: int): void
+        + handleUserInteraction(): void
+    }
+}
+
+package "Domain Layer" {
+    class ICharRepository {
+      + saveChart(chartData: ChartData): void
+      + loadChart(name: str): ChartData
+      + loadAllCharts(): List[ChartData]
+      + saveCharts(charts: List[ChartData]): void
+    }
+
+    class ChartService {
+        - chartRepository: IChartRepository
+        - patternProcessor: PatternProcessor
+        --
+        + createChart(name: str, config: ChartConfig): ChartSection
+        + processPattern(chart: ChartSection, pattern: str): void
+        + exportChart(chart: ChartSection): ChartData
+        + joinCharts(chart1: ChartSection, chart2: ChartSection): ChartSection
+    }
+    
+    class PatternProcessor {
+        - patternParser: PatternParser
+        - rowManager: RowManager
+        --
+        + expandPattern(pattern: str, context: PatternContext): ExpandedPattern
+        + validatePattern(pattern: str): bool
+        + processMarkers(pattern: str, markers: List[Marker]): void
+    }
+    
+    class ChartGenerator {
+        - nodeManager: NodeManager
+        - linkManager: LinkManager
+        - positionCalculator: PositionCalculator
+        - markerManager: MarkerManager
+        --
+        + generateNodes(row: List[str], context: GenerationContext): List[Node]
+        + generateLinks(previousRow: List[Node], currentRow: List[Node]): List[Link]
+        + calculatePositions(row: List[str], previousStitches: List[Node]): List[Position]
+    }
+    
+    class ChartSection {
+        - name: str
+        - start_side: str
+        - rowManager: RowManager
+        - nodeManager: NodeManager
+        - linkManager: LinkManager
+        - positionCalculator: PositionCalculator
+        - markerManager: MarkerManager
+        - patternParser: PatternParser
+        --
+        + add_row(pattern: str, isRound: bool): ChartSection
+        + add_round(pattern: str): ChartSection
+        + cast_on_start(count: int): void
+        + cast_on(count: int): ChartSection
+        + place_marker(side: str, position: int): void
+        + repeat_rows(patterns: List[str], count: int): void
+        + repeat_rounds(patterns: List[str], count: int): void
+        + join(other: ChartSection): ChartSection
+        + get_current_num_of_stitches(): int
+        + place_on_hold(): List[Dict]
+        + place_on_needle(stitches: List[Dict], side: str): void
+    }
+    
+    class PatternParser {
+        - CONSUME_PRODUCE: Dict[str, Tuple[int, int]]
+        - get_markers: Callable
+        - move_marker: Callable
+        - remove_marker: Callable
+        --
+        + expand_pattern(pattern: str, available_stitches: int, side: str): ExpandedPattern
+        + split_tokens(pattern: str): List[str]
+        + parse_token(token: str): Tuple[str, int]
+    }
+    
+    class RowManager {
+        - rows: List[List[str]]
+        - start_side: str
+        - last_row_side: str
+        --
+        + add_row(row: List[str], isRound: bool): void
+        + add_round(row: List[str]): void
+        + is_wrong_side(isRound: bool): bool
+        + reverse_row_if_needed(row: List[str], isRound: bool): List[str]
+        + duplicate_row(index: int): List[str]
+    }
+    
+    class NodeManager {
+        - nodes: List[Node]
+        - node_counter: int
+        - last_row_stitches: List[Node]
+        - stitches_on_hold: List[Node]
+        --
+        + create_stitch_node(stitch: str, fx: float, fy: float, row: int): Node
+        + create_strand_node(row: int): Node
+        + set_stitches_on_hold(): int
+        + places_stitches_on_needle(stitches: List[Node]): void
+    }
+    
+    class LinkManager {
+        - links: List[Link]
+        --
+        + add_horizontal_link(source_id: str, target_id: str): void
+        + add_vertical_link(source_id: str, target_id: str): void
+    }
+    
+    class PositionCalculator {
+        - DEFAULT_SPACING: float
+        - ROW_HEIGHT: float
+        - BASE_Y_OFFSET: float
+        --
+        + set_guage(sts: int, rows: int): void
+        + calculate_anchors(row: List[str], side: str, previous_stitches: List[Node], link_manager: LinkManager, node_counter: int): List[float]
+        + centered_array(n: int, spacing: float): List[float]
+    }
+    
+    class MarkerManager {
+        - markers_rs: List[int]
+        - markers_ws: List[int]
+        --
+        + add_marker(side: str, position: int, num_stitches: int): void
+        + get_markers(side: str): List[int]
+        + move_marker(side: str, position: int, shift_amount: int, num_stitches: int): void
+        + remove_marker(side: str, position: int): void
+    }
+}
+
+package "Data Layer" {
+    class ChartData {
+        + name: str
+        + nodes: List[Node]
+        + links: List[Link]
+    }
+    
+    class Node {
+        + id: str
+        + type: str
+        + row: int
+        + fx: float
+        + fy: float
+    }
+    
+    class Link {
+        + source: str
+        + target: str
+    }
+    
+    class ChartConfig {
+        + name: str
+        + start_side: str
+        + sts: int
+        + rows: int
+    }
+    
+    class ChartRepository {
+        - dataPath: str
+        --
+        + saveChart(chartData: ChartData): void
+        + loadChart(name: str): ChartData
+        + loadAllCharts(): List[ChartData]
+        + saveCharts(charts: List[ChartData]): void
+    }
+    
+    class PatternContext {
+        + available_stitches: int
+        + side: str
+        + markers: List[Marker]
+    }
+    
+    class ExpandedPattern {
+        + stitches: List[str]
+        + consumed: int
+        + produced: int
+        + markers: List[int]
+    }
+}
+
+' Layer relationships
+VisualizationView --> ChartService : uses
+UIController --> VisualizationView : controls
+ChartRenderer --> ChartData : renders
+
+ChartService --> ChartRepository : uses
+ChartService --> PatternProcessor : uses
+ChartService --> ChartGenerator : uses
+ChartService --> ChartSection : creates/manages
+
+PatternProcessor --> PatternParser : uses
+PatternProcessor --> RowManager : uses
+PatternProcessor --> MarkerManager : uses
+
+ChartGenerator --> NodeManager : uses
+ChartGenerator --> LinkManager : uses
+ChartGenerator --> PositionCalculator : uses
+
+ChartSection *-- RowManager : composition
+ChartSection *-- NodeManager : composition
+ChartSection *-- LinkManager : composition
+ChartSection *-- PositionCalculator : composition
+ChartSection *-- MarkerManager : composition
+ChartSection *-- PatternParser : composition
+
+ChartRepository --> ChartData : stores/loads
+ChartRepository ..|> ICharRepository
+ChartData *-- Node : contains
+ChartData *-- Link : contains
+
+PatternParser ..> MarkerManager : uses\n(via callbacks)
+PositionCalculator --> LinkManager : uses
+PositionCalculator ..> NodeManager : uses
+
+note right of "Presentation Layer"
+  **Responsibilities:**
+  - User interface rendering
+  - User interaction handling
+  - Visualization display
+  - No business logic
+end note
+
+note right of "Business Logic Layer"
+  **Responsibilities:**
+  - Pattern processing
+  - Chart generation logic
+  - Coordinate managers
+  - Business rules
+  - No UI or data persistence
+end note
+
+note right of "Data Layer"
+  **Responsibilities:**
+  - Data models/structures
+  - Data persistence (JSON)
+  - Data access
+  - No business logic
+end note
+
+@enduml
+

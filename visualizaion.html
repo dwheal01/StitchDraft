@@ -154,7 +154,7 @@
     // Load charts data
     async function loadChartsData() {
       try {
-        const response = await fetch('engine2/charts.json');
+        const response = await fetch('engine/charts.json');
         const data = await response.json();
         chartsData = data.charts;
         
