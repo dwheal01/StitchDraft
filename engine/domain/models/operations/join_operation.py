@@ -1,7 +1,7 @@
 from typing import Dict
 from engine.domain.interfaces.ichart_operation import IChartOperation
 from engine.chart_section import ChartSection
-from engine.data.models.validation_result import ValidationResult
+from engine.data.models.validation_results import ValidationResult
 from engine.data.models.pattern_context import PatternContext
 
 class JoinOperation(IChartOperation):
