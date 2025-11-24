@@ -27,12 +27,14 @@ package "Presentation Layer" {
         - svg: SVGElement
         - chartsData: List[ChartViewModel]
         - mapper: ViewModelMapper
+        - observer: ChartVisualizationObserver
         --
         + renderChart(chartData: ChartViewModel): void
         + loadChartsData(): void
         + switchTab(chartIndex: int): void
         + downloadSVG(chartIndex: int): void
         - initializeD3Visualization(): void
+        - refreshVisualization(): void
     }
     
     class ChartRenderer {
@@ -68,6 +70,19 @@ package "Presentation Layer" {
         --
         + renderWithTemplate(chart: ChartViewModel, template: IBodyFormTemplate): void
     }
+
+    class ChartVisualizationObserver implements IChartObserver {
+        - view: VisualizationView
+        - mapper: ViewModelMapper
+        --
+        + onStitchCountChanged(chart: ChartSection, oldCount: int, newCount: int): void
+        + onNodeAdded(chart: ChartSection, node: Node): void
+        + onLinkAdded(chart: ChartSection, link: Link): void
+        + onRowAdded(chart: ChartSection, row: List[str]): void
+        + onMarkerPlaced(chart: ChartSection, side: str, position: int): void
+        + onChartStateChanged(chart: ChartSection, event: ChartStateEvent): void
+        - updateVisualization(chart: ChartSection): void
+    }
 }
 
 package "Domain Layer" {
@@ -89,6 +104,7 @@ package "Domain Layer" {
         + exportChart(chart: ChartSection): ChartData
         + joinCharts(chart1: ChartSection, chart2: ChartSection): ChartSection
         + validateChart(chart: ChartSection, request: ValidationRequest): ValidationResult
+        + attachVisualizationObserver(chart: ChartSEction, observer: ChartVisualizationObserver): void
     }
     
     class PatternProcessor {
@@ -123,6 +139,7 @@ package "Domain Layer" {
     class ChartSection {
         - name: str
         - start_side: str
+        - observers: List<IChartObserver>
         - stitchCounter: StitchCounter
         - validator: StitchCountValidator
         - rowManager: RowManager
@@ -132,7 +149,10 @@ package "Domain Layer" {
         - markerManager: MarkerManager
         - patternParser: PatternParser
         --
-
+        + attach(observer: IChartObserver): void
+        + detach(observer: IChartObserver): void
+        + notifyObservers(event: ChartStateEvent): void
+      
         + add_row(pattern: str, isRound: bool): ChartSection
         + add_round(pattern: str): ChartSection
         + cast_on_start(count: int): void
@@ -144,6 +164,12 @@ package "Domain Layer" {
         + get_current_num_of_stitches(): int
         + place_on_hold(): List[Dict]
         + place_on_needle(stitches: List[Dict], side: str): void
+
+        - notifyStitchCountChanged(oldCount: int, newCount: int): void
+        - notifyNodeAdded(node: Node): void
+        - notifyLinkAdded(link: Link): void
+        - notifyRowAdded(row: List[str]): void
+        - notifyMarkerPlaced(side: str, position: int): void
     }
 
     interface IMarkerProvider {
@@ -368,6 +394,22 @@ package "Data Layer" {
         + produced: int
         + markers: List[int]
     }
+
+    interface IChartObserver {
+        + onStitchCountChanged(chart: ChartSection, oldCount: int, newCount: int): void
+        + onNodeAdded(chart: ChartSection, node: Node): void
+        + onLinkAdded(chart: ChartSection, link: Link): void
+        + onRowAdded(chart: ChartSection, row: List[str]): void
+        + onMarkerPlaced(chart: ChartSection, side: str, position: int): void
+        + onChartStateChanged(chart: ChartSection, event: ChartStateEvent): void
+    }
+    
+    class ChartStateEvent {
+        + eventType: str
+        + chart: ChartSection
+        + data: Dict
+        + timestamp: DateTime
+    }
 }
 
 ' ============================================
@@ -388,6 +430,16 @@ ChartViewModel *-- LinkViewModel : contains
 UIController --> VisualizationView : controls
 
 ' ============================================
+' DOMAIN LAYER - OBSERVER PATTERN
+' ============================================
+hartSection --> IChartObserver : notifies
+ChartVisualizationObserver ..|> IChartObserver : implements
+ChartVisualizationObserver --> VisualizationView : updates
+ChartVisualizationObserver --> ViewModelMapper : uses
+ChartVisualizationObserver --> ChartSection : observes
+ChartVisualizationObserver ..> ChartStateEvent : uses
+
+' ============================================
 ' DOMAIN LAYER - SERVICE & FACTORY
 ' ============================================
 ChartService --> IChartRepository : uses
@@ -397,6 +449,8 @@ ChartService --> ChartSection : creates/manages
 ChartService --> ChartSectionFactory : uses
 ChartService --> ChartDataSerializer : uses
 ChartService --> ChartConfig : uses
+ChartService --> ChartVisualizationObserver : creates
+ChartService --> ChartSection : attaches observer
 
 ChartSectionFactory --> ChartSection : creates
 ChartSectionFactory --> StitchCounter : creates
