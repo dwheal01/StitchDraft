@@ -82,11 +82,13 @@ package "Domain Layer" {
         - chartRepository: IChartRepository
         - patternProcessor: PatternProcessor
         - chartFactory: ChartSectionFactory
+        - validationChain: ValidationHandler
         --
         + createChart(name: str, config: ChartConfig): ChartSection
         + processPattern(chart: ChartSection, pattern: str): void
         + exportChart(chart: ChartSection): ChartData
         + joinCharts(chart1: ChartSection, chart2: ChartSection): ChartSection
+        + validateChart(chart: ChartSection, request: ValidationRequest): ValidationResult
     }
     
     class PatternProcessor {
@@ -210,26 +212,40 @@ package "Domain Layer" {
         + remove_marker(side: str, position: int): void
     }
 
-    class StitchCountValidator {
+    abstract class ValidationHandler {
+        - nextHandler: ValidationHandler
         --
-        + validateStitchCount(current: int, expected: int): void
-        + validateNoNegative(count: int): void
-        + validateBindOff(available: int, toBindOff: int): void
-        + validateOperation(operation: str, available: int): ValidationResult
+        + setNext(handler: ValidationHandler): void
+        + handle(request: ValidationRequest): ValidationResult
+        + {abstract} validate(request: ValidationRequest): ValidationResult
+        - passToNext(request: ValidationRequest): ValidationResult
     }
     
-    class PatternValidator {
-        --
-        + validatePatternSyntax(pattern: str): ValidationResult
-        + validateStitchInstructions(instructions: List[str]): ValidationResult
-        + validateMarkerPlacement(position: int, numStitches: int): ValidationResult
+    class ValidationRequest {
+        + chart: ChartSection
+        + pattern: str
+        + nodes: List[Node]
+        + links: List[Link]
+        + operation: str
+        + context: PatternContext
     }
-    
-    class OrderValidator {
-        --
-        + validateNodeOrder(nodes: List[Node]): ValidationResult
-        + validateLinkOrder(links: List[Link]): ValidationResult
-        + validateStitchIndexAlignment(nodes: List[Node]): ValidationResult
+
+    class StitchCountValidationHandler extends ValidationHandler {
+      - validator: StitchCountValidator
+      --
+      + validate(request: ValidationRequest): ValidationResult
+    }
+
+   class PatternValidationHandler extends ValidationHandler {
+      - validator: PatternValidator
+      --
+      + validate(request: ValidationRequest): ValidationResult
+    }
+
+   class OrderValidationHandler extends ValidationHandler {
+      - validator: OrderValidator
+      --
+      + validate(request: ValidationRequest): ValidationResult
     }
     
     class ValidationResult {
@@ -311,14 +327,23 @@ package "Data Layer" {
         + rows: int
     }
 
-    class ChartDataValidator {
+    class ChartDataValidationHandler extends ValidationHandler {
+        - validator: ChartDataValidator
         --
-        + validateChartData(data: Dict): ValidationResult
-        + validateNodeStructure(node: Dict): ValidationResult
-        + validateLinkStructure(link: Dict): ValidationResult
-        + validateRequiredFields(data: Dict): ValidationResult
+        + validate(request: ValidationRequest): ValidationResult
     }
     
+    class ValidationChainBuilder {
+         - firstHandler: ValidationHandler
+         - lastHandler: ValidationHandler
+         --
+         + addStitchCountValidation(): ValidationChainBuilder
+         + addPatternValidation(): ValidationChainBuilder
+         + addOrderValidation(): ValidationChainBuilder
+         + addChartDataValidation(): ValidationChainBuilder
+         + build(): ValidationHandler
+    }
+
     class ChartRepository {
         - dataPath: str
         - validator: ChartDataValidator
@@ -428,12 +453,29 @@ PositionCalculator ..> NodeManager : uses
 ' ============================================
 ' DOMAIN LAYER - VALIDATORS
 ' ============================================
-StitchCountValidator --> ValidationResult : returns
-PatternValidator --> ValidationResult : returns
-OrderValidator --> ValidationResult : returns
-OrderValidator --> Node : validates
-OrderValidator --> Link : validates
-ChartSection --> StitchCountValidator : uses
+' Chain of Responsibility relationships
+ValidationHandler <|-- StitchCountValidationHandler
+ValidationHandler <|-- PatternValidationHandler
+ValidationHandler <|-- OrderValidationHandler
+ValidationHandler <|-- ChartDataValidationHandler
+ValidationHandler --> ValidationHandler : next
+ValidationHandler --> ValidationRequest : uses
+ValidationHandler --> ValidationResult : returns
+
+' Chain builder
+ValidationChainBuilder --> ValidationHandler : builds
+ValidationChainBuilder --> StitchCountValidationHandler : creates
+ValidationChainBuilder --> PatternValidationHandler : creates
+ValidationChainBuilder --> OrderValidationHandler : creates
+ValidationChainBuilder --> ChartDataValidationHandler : creates
+
+' Usage
+ChartService --> ValidationHandler : uses
+ChartSection --> ValidationHandler : uses
+StitchCountValidationHandler --> StitchCountValidator : delegates
+PatternValidationHandler --> PatternValidator : delegates
+OrderValidationHandler --> OrderValidator : delegates
+ChartDataValidationHandler --> ChartDataValidator : delegates
 
 ' ============================================
 ' DOMAIN LAYER - OPERATIONS
