@@ -13,6 +13,12 @@ from engine.domain.models.operation_registry import OperationRegistry
 from engine.domain.models.operations.place_on_hold_operation import PlaceOnHoldOperation
 from engine.domain.models.operations.place_on_needle_operation import PlaceOnNeedleOperation
 from engine.domain.models.operations.join_operation import JoinOperation
+from engine.domain.models.stitch_counter import StitchCounter
+from engine.domain.models.validators.stitch_count_validator import StitchCountValidator
+from engine.domain.models.validation.validation_handler import ValidationHandler
+from engine.domain.models.validation.stitch_count_validation_handler import StitchCountValidationHandler
+from engine.domain.models.validation.pattern_validation_handler import PatternValidationHandler
+from engine.domain.models.validation.order_validation_handler import OrderValidationHandler
 
 # Note: StitchCounter and StitchCountValidator will be added later
 # from engine.domain.models.stitch_counter import StitchCounter
@@ -20,6 +26,25 @@ from engine.domain.models.operations.join_operation import JoinOperation
 
 
 class ChartSectionFactory:
+    def _create_stitch_counter(self) -> StitchCounter:
+      """Create a StitchCounter instance."""
+      return StitchCounter()
+
+    def _create_validator(self) -> StitchCountValidator:
+      """Create a StitchCountValidator instance."""
+      return StitchCountValidator()
+
+    def _create_validation_chain(self) -> ValidationHandler:
+      """Create and chain validation handlers."""
+      stitch_handler = StitchCountValidationHandler()
+      pattern_handler = PatternValidationHandler()
+      order_handler = OrderValidationHandler()
+      
+      # Chain them together
+      stitch_handler.set_next(pattern_handler).set_next(order_handler)
+      
+      return stitch_handler
+ 
     """Factory for creating ChartSection instances with all dependencies."""
     
     def create(self, config: ChartConfig) -> ChartSection:
@@ -47,11 +72,12 @@ class ChartSectionFactory:
         chart_queries = None  # Will be created after ChartSection
         operation_registry = self._create_operation_registry()
         
-        # Create validators and counters (will be implemented later)
-        # stitch_counter = self._create_stitch_counter()
-        # validator = self._create_validator()
+        # Create validators and counters
+        stitch_counter = self._create_stitch_counter()
+        validator = self._create_validator()
+        validation_chain = self._create_validation_chain()
         
-                # Create ChartSection with dependency injection
+        # Create ChartSection with dependency injection
         chart_section = ChartSection(
             name=config.name,
             start_side=config.start_side,
@@ -62,7 +88,10 @@ class ChartSectionFactory:
             marker_manager=marker_manager,
             pattern_parser=pattern_parser,
             chart_generator=chart_generator,
-            operation_registry=operation_registry
+            operation_registry=operation_registry,
+            stitch_counter=stitch_counter,
+            validator=validator,
+            validation_chain=validation_chain
         )
         
         # ChartQueries needs ChartSection, so create it after and set it

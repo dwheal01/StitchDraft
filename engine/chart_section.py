@@ -29,6 +29,9 @@ class ChartSection:
         chart_generator: Optional[ChartGenerator] = None,
         chart_queries: Optional[ChartQueries] = None,
         operation_registry: Optional[OperationRegistry] = None,
+        stitch_counter: Optional['StitchCounter'] = None,
+        validator: Optional['StitchCountValidator'] = None,
+        validation_chain: Optional['ValidationHandler'] = None,
         # Legacy parameters for backward compatibility
         sts: int = 22,
         rows: int = 28,
@@ -89,6 +92,24 @@ class ChartSection:
             self.operation_registry = operation_registry
         else:
             self.operation_registry = OperationRegistry()
+            
+        if stitch_counter is not None:
+            self.stitch_counter = stitch_counter
+        else:
+            from engine.domain.models.stitch_counter import StitchCounter
+            self.stitch_counter = StitchCounter()
+        
+        if validator is not None:
+            self.validator = validator
+        else:
+            from engine.domain.models.validators.stitch_count_validator import StitchCountValidator
+            self.validator = StitchCountValidator()
+        
+        if validation_chain is not None:
+            self.validation_chain = validation_chain
+        else:
+            from engine.domain.models.validation.validation_handler import ValidationHandler
+            self.validation_chain = None  # Optional, can be set later
     
     # Observer management
     def attach(self, observer: IChartObserver) -> None:

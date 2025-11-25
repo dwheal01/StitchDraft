@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ViewModels End-to-End Test</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      background-color: #f5f5f5;
+    }
+    .test-container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+    }
+    .test-pass {
+      color: #27ae60;
+      font-weight: bold;
+    }
+    .test-fail {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+    .test-warning {
+      color: #f39c12;
+      font-weight: bold;
+    }
+    .test-section {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-left: 4px solid #3498db;
+    }
+    .test-section.pass {
+      border-left-color: #27ae60;
+    }
+    .test-section.fail {
+      border-left-color: #e74c3c;
+    }
+    .test-section.warning {
+      border-left-color: #f39c12;
+    }
+    pre {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 1rem;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    h2 {
+      color: #34495e;
+      margin-top: 2rem;
+    }
+    .chart-preview {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    svg {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      max-width: 100%;
+    }
+    .k { fill: #4A90E2; stroke: #333; stroke-width: 0.5; }
+    .p { fill: #524be3; stroke: #333; stroke-width: 0.5; }
+    .inc { fill: #85DCB0; stroke: #333; stroke-width: 0.5; }
+    .dec { fill: #E27D60; stroke: #333; stroke-width: 0.5; }
+    .link { stroke: #aaa; stroke-width: 1; }
+  </style>
+</head>
+<body>
+  <h1>ViewModels End-to-End Test</h1>
+  <div id="test-results"></div>
+  <div id="chart-preview"></div>
+
+  <script>
+    // ============================================
+    // COPY VIEWMODEL CLASSES FROM visualizaion.html
+    // ============================================
+    
+    class NodeViewModel {
+      constructor(id, type, x, y, row) {
+        this.id = id;
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        this.row = row;
+      }
+    }
+    
+    class LinkViewModel {
+      constructor(sourceId, targetId) {
+        this.sourceId = sourceId;
+        this.targetId = targetId;
+      }
+    }
+    
+    class ChartViewModel {
+      constructor(name, nodes, links) {
+        this.name = name;
+        this.nodes = nodes;
+        this.links = links;
+      }
+    }
+    
+    class ViewModelMapper {
+      toViewModel(chartData) {
+        const nodeViewModels = chartData.nodes.map(node => 
+          this.toNodeViewModel(node)
+        );
+        const linkViewModels = chartData.links.map(link => 
+          this.toLinkViewModel(link)
+        );
+        
+        return new ChartViewModel(
+          chartData.name,
+          nodeViewModels,
+          linkViewModels
+        );
+      }
+      
+      toNodeViewModel(node) {
+        return new NodeViewModel(
+          node.id,
+          node.type,
+          node.fx || node.x,
+          node.fy || node.y,
+          node.row
+        );
+      }
+      
+      toLinkViewModel(link) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        
+        return new LinkViewModel(sourceId, targetId);
+      }
+    }
+    
+    class ChartRenderer {
+      renderNodes(svg, nodes) {
+        const nodeGroup = svg.append("g");
+        
+        const node = nodeGroup
+          .selectAll("circle")
+          .data(nodes)
+          .join("circle")
+          .attr("r", d => (d.type === "k" || d.type === "p" || d.type === "inc" || d.type === "dec") ? 5 : 2)
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y)
+          .attr("fill", d => this._getNodeColor(d.type))
+          .attr("stroke", d => (d.type === "k" || d.type === "p" || d.type === "inc" || d.type === "dec") ? "#333" : "none")
+          .attr("stroke-width", 0.5)
+          .attr("opacity", d => d.type === "strand" ? 0 : 1)
+          .style("pointer-events", d => d.type === "strand" ? "none" : "auto");
+        
+        return node;
+      }
+      
+      renderLinks(svg, links, nodes) {
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+        
+        const linkGroup = svg.append("g");
+        
+        const link = linkGroup
+          .selectAll("line")
+          .data(links)
+          .join("line")
+          .attr("class", "link")
+          .attr("x1", d => {
+            const sourceNode = nodeMap.get(d.sourceId);
+            return sourceNode ? sourceNode.x : 0;
+          })
+          .attr("y1", d => {
+            const sourceNode = nodeMap.get(d.sourceId);
+            return sourceNode ? sourceNode.y : 0;
+          })
+          .attr("x2", d => {
+            const targetNode = nodeMap.get(d.targetId);
+            return targetNode ? targetNode.x : 0;
+          })
+          .attr("y2", d => {
+            const targetNode = nodeMap.get(d.targetId);
+            return targetNode ? targetNode.y : 0;
+          });
+        
+        return link;
+      }
+      
+      calculateLayout(nodes) {
+        if (nodes.length === 0) {
+          return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 400, height: 300 };
+        }
+        
+        const minX = d3.min(nodes, d => d.x);
+        const maxX = d3.max(nodes, d => d.x);
+        const minY = d3.min(nodes, d => d.y);
+        const maxY = d3.max(nodes, d => d.y);
+        
+        const padding = 100;
+        const width = maxX - minX + 2 * padding;
+        const height = maxY - minY + 2 * padding;
+        
+        return {
+          minX: minX - padding,
+          maxX: maxX + padding,
+          minY: minY - padding,
+          maxY: maxY + padding,
+          width: Math.max(400, width),
+          height: Math.max(300, height)
+        };
+      }
+      
+      _getNodeColor(type) {
+        const colors = {
+          "k": "#4A90E2",
+          "p": "#524be3",
+          "inc": "#85DCB0",
+          "dec": "#E27D60",
+          "strand": "#fff"
+        };
+        return colors[type] || "transparent";
+      }
+    }
+    
+    // ============================================
+    // TEST SUITE
+    // ============================================
+    
+    class TestRunner {
+      constructor() {
+        this.results = [];
+        this.passed = 0;
+        this.failed = 0;
+        this.warnings = 0;
+      }
+      
+      assert(condition, message) {
+        if (condition) {
+          this.passed++;
+          this.results.push({ type: 'pass', message });
+        } else {
+          this.failed++;
+          this.results.push({ type: 'fail', message });
+        }
+      }
+      
+      warn(message) {
+        this.warnings++;
+        this.results.push({ type: 'warning', message });
+      }
+      
+      render() {
+        const container = document.getElementById('test-results');
+        let html = '<div class="test-container">';
+        
+        html += `<h2>Test Results: ${this.passed} passed, ${this.failed} failed, ${this.warnings} warnings</h2>`;
+        
+        this.results.forEach(result => {
+          const className = result.type;
+          const icon = result.type === 'pass' ? '✓' : result.type === 'fail' ? '✗' : '⚠';
+          html += `<div class="test-section ${className}">${icon} ${result.message}</div>`;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+      }
+    }
+    
+    // ============================================
+    // SAMPLE DATA GENERATOR
+    // ============================================
+    
+    function generateSampleChartData(name) {
+      return {
+        name: name,
+        nodes: [
+          { id: 'n0', type: 'k', fx: 0.0, fy: 0.0, row: 0 },
+          { id: 'n1', type: 'p', fx: 20.0, fy: 0.0, row: 0 },
+          { id: 'n2', type: 'k', fx: 40.0, fy: 0.0, row: 0 },
+          { id: 'n3', type: 'inc', fx: 10.0, fy: 30.0, row: 1 },
+          { id: 'n4', type: 'dec', fx: 30.0, fy: 30.0, row: 1 }
+        ],
+        links: [
+          { source: 'n0', target: 'n1' },
+          { source: 'n1', target: 'n2' },
+          { source: 'n0', target: 'n3' },
+          { source: 'n2', target: 'n4' },
+          { source: 'n3', target: 'n4' }
+        ]
+      };
+    }
+    
+    // ============================================
+    // RUN TESTS
+    // ============================================
+    
+    async function runTests() {
+      const runner = new TestRunner();
+      const mapper = new ViewModelMapper();
+      const renderer = new ChartRenderer();
+      
+      // Test 1: Load actual charts.json
+      runner.assert(
+        typeof fetch !== 'undefined',
+        'Fetch API is available'
+      );
+      
+      let actualChartsData = null;
+      try {
+        const response = await fetch('../engine/charts.json');
+        if (response.ok) {
+          actualChartsData = await response.json();
+          runner.assert(true, 'Successfully loaded charts.json');
+          
+          // Check if charts are empty
+          const hasEmptyCharts = actualChartsData.charts.some(chart => 
+            chart.nodes.length === 0 && chart.links.length === 0
+          );
+          
+          if (hasEmptyCharts) {
+            runner.warn('Some charts in charts.json are empty (no nodes or links)');
+          } else {
+            runner.assert(true, 'All charts in charts.json have data');
+          }
+        } else {
+          runner.warn(`Could not load charts.json: ${response.status} ${response.statusText}`);
+        }
+      } catch (error) {
+        runner.warn(`Error loading charts.json: ${error.message}`);
+      }
+      
+      // Test 2: Handle empty charts
+      const emptyChartData = {
+        name: 'empty_chart',
+        nodes: [],
+        links: []
+      };
+      
+      const emptyChartVM = mapper.toViewModel(emptyChartData);
+      runner.assert(
+        emptyChartVM instanceof ChartViewModel &&
+        emptyChartVM.nodes.length === 0 &&
+        emptyChartVM.links.length === 0,
+        'Empty charts are handled correctly by ViewModelMapper'
+      );
+      
+      // Test 3: Test with sample data
+      const sampleData = generateSampleChartData('test_chart');
+      const sampleChartVM = mapper.toViewModel(sampleData);
+      
+      runner.assert(
+        sampleChartVM.nodes.length === 5 &&
+        sampleChartVM.links.length === 5,
+        'Sample chart data converts correctly to ViewModels'
+      );
+      
+      // Test 4: Render empty chart
+      const emptySvg = d3.select('body').append('svg').attr('id', 'test-empty-svg');
+      const emptyLayout = renderer.calculateLayout([]);
+      emptySvg.attr('width', emptyLayout.width).attr('height', emptyLayout.height);
+      
+      renderer.renderLinks(emptySvg, [], []);
+      renderer.renderNodes(emptySvg, []);
+      
+      runner.assert(
+        emptySvg.selectAll('circle').size() === 0 &&
+        emptySvg.selectAll('line').size() === 0,
+        'Empty charts render without errors (no nodes/links drawn)'
+      );
+      
+      emptySvg.remove();
+      
+      // Test 5: Render sample chart
+      const sampleSvg = d3.select('body').append('svg').attr('id', 'test-sample-svg');
+      const sampleLayout = renderer.calculateLayout(sampleChartVM.nodes);
+      sampleSvg
+        .attr('width', sampleLayout.width)
+        .attr('height', sampleLayout.height)
+        .attr('viewBox', `${sampleLayout.minX} ${sampleLayout.minY} ${sampleLayout.width} ${sampleLayout.height}`);
+      
+      renderer.renderLinks(sampleSvg, sampleChartVM.links, sampleChartVM.nodes);
+      renderer.renderNodes(sampleSvg, sampleChartVM.nodes);
+      
+      const renderedNodes = sampleSvg.selectAll('circle').size();
+      const renderedLinks = sampleSvg.selectAll('line').size();
+      
+      runner.assert(
+        renderedNodes === 5 && renderedLinks === 5,
+        `Sample chart renders correctly: ${renderedNodes} nodes, ${renderedLinks} links`
+      );
+      
+      // Test 6: Test with actual charts.json data (if available)
+      if (actualChartsData && actualChartsData.charts.length > 0) {
+        let chartsProcessed = 0;
+        let chartsWithData = 0;
+        
+        actualChartsData.charts.forEach(chart => {
+          chartsProcessed++;
+          const chartVM = mapper.toViewModel(chart);
+          
+          if (chartVM.nodes.length > 0 || chartVM.links.length > 0) {
+            chartsWithData++;
+          }
+        });
+        
+        runner.assert(
+          chartsProcessed === actualChartsData.charts.length,
+          `Processed ${chartsProcessed} charts from charts.json`
+        );
+        
+        if (chartsWithData > 0) {
+          runner.assert(true, `${chartsWithData} chart(s) have data`);
+        } else {
+          runner.warn('All charts in charts.json are empty - generate charts by running main.py');
+        }
+      }
+      
+      // Render results
+      runner.render();
+      
+      // Render chart preview
+      const previewContainer = document.getElementById('chart-preview');
+      if (sampleChartVM.nodes.length > 0) {
+        const previewHtml = `
+          <div class="test-container">
+            <h2>Sample Chart Preview (Testing with Generated Data)</h2>
+            <div class="chart-preview">
+              <p><strong>Chart:</strong> ${sampleChartVM.name}</p>
+              <p><strong>Nodes:</strong> ${sampleChartVM.nodes.length}, <strong>Links:</strong> ${sampleChartVM.links.length}</p>
+              <svg id="preview-svg" width="${sampleLayout.width}" height="${sampleLayout.height}" 
+                   viewBox="${sampleLayout.minX} ${sampleLayout.minY} ${sampleLayout.width} ${sampleLayout.height}"></svg>
+            </div>
+          </div>
+        `;
+        previewContainer.innerHTML = previewHtml;
+        
+        // Render preview
+        const previewSvg = d3.select('#preview-svg');
+        renderer.renderLinks(previewSvg, sampleChartVM.links, sampleChartVM.nodes);
+        renderer.renderNodes(previewSvg, sampleChartVM.nodes);
+      }
+      
+      // Log summary
+      console.log(`Tests: ${runner.passed} passed, ${runner.failed} failed, ${runner.warnings} warnings`);
+      if (runner.failed === 0) {
+        console.log('✓ All tests passed!');
+      } else {
+        console.error('✗ Some tests failed');
+      }
+    }
+    
+    // Run tests when page loads
+    window.addEventListener('DOMContentLoaded', runTests);
+  </script>
+</body>
+</html>

@@ -8,6 +8,8 @@ from engine.data.models.expanded_pattern import ExpandedPattern
 from engine.data.models.validation_results import ValidationResult
 from engine.data.models.chart_state_event import ChartStateEvent
 from engine.data.models.generation_context import GenerationContext
+from engine.data.models.stitch_count_event import StitchCountEvent
+from engine.data.models.validation_request import ValidationRequest
 
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     'ValidationResult',
     'ChartStateEvent',
     'GenerationContext',
+    'StitchCountEvent',
+    'ValidationRequest',
 ]
