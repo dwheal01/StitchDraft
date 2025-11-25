@@ -138,250 +138,479 @@
   </div>
 
   <script>
-    // Global variables
-    let chartsData = [];
-    let currentChartIndex = 0;
+    // ============================================
+    // PRESENTATION LAYER - VIEW MODELS
+    // ============================================
     
-    // Gauge settings
-    const GAUGE = {
-      stitchesPerInch: 5.50,
-      rowsPerInch: 7.50,
-      marginInches: 0.00
-    };
-    
-    const rowSpacing = 75;
-
-    // Load charts data
-    async function loadChartsData() {
-      try {
-        const response = await fetch('../engine/charts.json');
-        const data = await response.json();
-        chartsData = data.charts;
-        
-        // Initialize the interface
-        initializeInterface();
-      } catch (error) {
-        console.error('Error loading charts data:', error);
-        // Fallback: try to load individual files
-        await loadIndividualCharts();
+    /**
+     * NodeViewModel - Presentation layer model for a stitch node
+     */
+    class NodeViewModel {
+      constructor(id, type, x, y, row) {
+        this.id = id;
+        this.type = type;  // 'k', 'p', 'inc', 'dec', 'strand', 'bo'
+        this.x = x;
+        this.y = y;
+        this.row = row;
       }
     }
     
-    // Fallback: load individual chart files
-    async function loadIndividualCharts() {
-      const chartFiles = ['left_front.json', 'right_front.json'];
-      chartsData = [];
+    /**
+     * LinkViewModel - Presentation layer model for a link between nodes
+     */
+    class LinkViewModel {
+      constructor(sourceId, targetId) {
+        this.sourceId = sourceId;
+        this.targetId = targetId;
+      }
+    }
+    
+    /**
+     * ChartViewModel - Presentation layer model for a chart
+     */
+    class ChartViewModel {
+      constructor(name, nodes, links) {
+        this.name = name;
+        this.nodes = nodes;  // Array of NodeViewModel
+        this.links = links;  // Array of LinkViewModel
+      }
+    }
+    
+    // ============================================
+    // PRESENTATION LAYER - VIEW MODEL MAPPER
+    // ============================================
+    
+    /**
+     * ViewModelMapper - Converts raw JSON data to ViewModels
+     */
+    class ViewModelMapper {
+      /**
+       * Convert raw chart data to ChartViewModel
+       * @param {Object} chartData - Raw chart data from JSON
+       * @returns {ChartViewModel}
+       */
+      toViewModel(chartData) {
+        const nodeViewModels = chartData.nodes.map(node => 
+          this.toNodeViewModel(node)
+        );
+        const linkViewModels = chartData.links.map(link => 
+          this.toLinkViewModel(link)
+        );
+        
+        return new ChartViewModel(
+          chartData.name,
+          nodeViewModels,
+          linkViewModels
+        );
+      }
       
-      for (const file of chartFiles) {
+      /**
+       * Convert raw node data to NodeViewModel
+       * @param {Object} node - Raw node data
+       * @returns {NodeViewModel}
+       */
+      toNodeViewModel(node) {
+        return new NodeViewModel(
+          node.id,
+          node.type,
+          node.fx || node.x,
+          node.fy || node.y,
+          node.row
+        );
+      }
+      
+      /**
+       * Convert raw link data to LinkViewModel
+       * @param {Object} link - Raw link data (may have source/target as objects or IDs)
+       * @returns {LinkViewModel}
+       */
+      toLinkViewModel(link) {
+        // Handle both formats: {source: "id", target: "id"} or {source: {id: "..."}, target: {id: "..."}}
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        
+        return new LinkViewModel(sourceId, targetId);
+      }
+    }
+    
+    // ============================================
+    // PRESENTATION LAYER - CHART RENDERER
+    // ============================================
+    
+    /**
+     * ChartRenderer - Handles D3 rendering of charts
+     */
+    class ChartRenderer {
+      /**
+       * Render nodes using D3
+       * @param {d3.Selection} svg - D3 selection of SVG element
+       * @param {Array<NodeViewModel>} nodes - Array of node view models
+       */
+      renderNodes(svg, nodes) {
+        const nodeGroup = svg.append("g");
+        
+        const node = nodeGroup
+          .selectAll("circle")
+          .data(nodes)
+          .join("circle")
+          .attr("r", d => (d.type === "k" || d.type === "p" || d.type === "inc" || d.type === "dec") ? 5 : 2)
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y)
+          .attr("fill", d => this._getNodeColor(d.type))
+          .attr("stroke", d => (d.type === "k" || d.type === "p" || d.type === "inc" || d.type === "dec") ? "#333" : "none")
+          .attr("stroke-width", 0.5)
+          .attr("opacity", d => d.type === "strand" ? 0 : 1)
+          .style("pointer-events", d => d.type === "strand" ? "none" : "auto")
+          .style("cursor", "pointer")
+          .on("click", function(event, d) {
+            d3.select(this).attr("fill", "black");
+          });
+        
+        return node;
+      }
+      
+      /**
+       * Render links using D3
+       * @param {d3.Selection} svg - D3 selection of SVG element
+       * @param {Array<LinkViewModel>} links - Array of link view models
+       * @param {Array<NodeViewModel>} nodes - Array of node view models (for position lookup)
+       */
+      renderLinks(svg, links, nodes) {
+        // Create a map for quick node lookup
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+        
+        const linkGroup = svg.append("g");
+        
+        const link = linkGroup
+          .selectAll("line")
+          .data(links)
+          .join("line")
+          .attr("class", "link")
+          .attr("x1", d => {
+            const sourceNode = nodeMap.get(d.sourceId);
+            return sourceNode ? sourceNode.x : 0;
+          })
+          .attr("y1", d => {
+            const sourceNode = nodeMap.get(d.sourceId);
+            return sourceNode ? sourceNode.y : 0;
+          })
+          .attr("x2", d => {
+            const targetNode = nodeMap.get(d.targetId);
+            return targetNode ? targetNode.x : 0;
+          })
+          .attr("y2", d => {
+            const targetNode = nodeMap.get(d.targetId);
+            return targetNode ? targetNode.y : 0;
+          });
+        
+        return link;
+      }
+      
+      /**
+       * Render labels for nodes
+       * @param {d3.Selection} svg - D3 selection of SVG element
+       * @param {Array<NodeViewModel>} nodes - Array of node view models
+       */
+      renderLabels(svg, nodes) {
+        const labelGroup = svg.append("g");
+        
+        const labels = labelGroup
+          .selectAll("text")
+          .data(nodes)
+          .join("text")
+          .text(d => d.type === "strand" ? "" : d.id)
+          .attr("font-size", 11)
+          .attr("text-anchor", "middle")
+          .attr("dy", 4)
+          .attr("x", d => d.x)
+          .attr("y", d => d.y + 35);
+        
+        return labels;
+      }
+      
+      /**
+       * Calculate layout dimensions from nodes
+       * @param {Array<NodeViewModel>} nodes - Array of node view models
+       * @returns {Object} {minX, maxX, minY, maxY, width, height}
+       */
+      calculateLayout(nodes) {
+        if (nodes.length === 0) {
+          return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 400, height: 300 };
+        }
+        
+        const minX = d3.min(nodes, d => d.x);
+        const maxX = d3.max(nodes, d => d.x);
+        const minY = d3.min(nodes, d => d.y);
+        const maxY = d3.max(nodes, d => d.y);
+        
+        const padding = 100;
+        const width = maxX - minX + 2 * padding;
+        const height = maxY - minY + 2 * padding;
+        
+        return {
+          minX: minX - padding,
+          maxX: maxX + padding,
+          minY: minY - padding,
+          maxY: maxY + padding,
+          width: Math.max(400, width),
+          height: Math.max(300, height)
+        };
+      }
+      
+      /**
+       * Get color for a node type
+       * @private
+       */
+      _getNodeColor(type) {
+        const colors = {
+          "k": "#4A90E2",
+          "p": "#524be3",
+          "inc": "#85DCB0",
+          "dec": "#E27D60",
+          "strand": "#fff"
+        };
+        return colors[type] || "transparent";
+      }
+    }
+    
+    // ============================================
+    // PRESENTATION LAYER - VISUALIZATION VIEW
+    // ============================================
+    
+    /**
+     * VisualizationView - Manages the visualization interface
+     */
+    class VisualizationView {
+      constructor() {
+        this.chartsData = [];  // Array of ChartViewModel
+        this.mapper = new ViewModelMapper();
+        this.renderer = new ChartRenderer();
+        this.currentChartIndex = 0;
+      }
+      
+      /**
+       * Load charts data from JSON
+       */
+      async loadChartsData() {
         try {
-          const response = await fetch(`engine2/${file}`);
+          const response = await fetch('../engine/charts.json');
           const data = await response.json();
-          chartsData.push(data);
+          
+          // Convert raw data to ViewModels
+          this.chartsData = data.charts.map(chart => 
+            this.mapper.toViewModel(chart)
+          );
+          
+          this.initializeInterface();
         } catch (error) {
-          console.warn(`Could not load ${file}:`, error);
+          console.error('Error loading charts data:', error);
+          await this.loadIndividualCharts();
         }
       }
       
-      if (chartsData.length > 0) {
-        initializeInterface();
-      } else {
-        document.getElementById('loading').innerHTML = 
-          '<div class="loading"><h3>No charts found</h3><p>Please generate some charts first.</p></div>';
-      }
-    }
-
-    // Initialize the tabbed interface
-    function initializeInterface() {
-      const tabsContainer = document.getElementById('tabs');
-      const loadingTab = document.getElementById('loading');
-      
-      // Remove loading tab
-      loadingTab.remove();
-      
-      // Create tabs for each chart
-      chartsData.forEach((chart, index) => {
-        // Create tab button
-        const tabButton = document.createElement('button');
-        tabButton.className = `tab ${index === 0 ? 'active' : ''}`;
-        tabButton.textContent = chart.name.replace('_', ' ').toUpperCase();
-        tabButton.onclick = () => switchTab(index);
-        tabsContainer.appendChild(tabButton);
+      /**
+       * Fallback: load individual chart files
+       */
+      async loadIndividualCharts() {
+        const chartFiles = ['left_front.json', 'right_front.json'];
+        this.chartsData = [];
         
-        // Create tab content
-        const tabContent = document.createElement('div');
-        tabContent.className = `tab-content ${index === 0 ? 'active' : ''}`;
-        tabContent.id = `chart-${index}`;
+        for (const file of chartFiles) {
+          try {
+            const response = await fetch(`engine2/${file}`);
+            const data = await response.json();
+            this.chartsData.push(this.mapper.toViewModel(data));
+          } catch (error) {
+            console.warn(`Could not load ${file}:`, error);
+          }
+        }
         
-        tabContent.innerHTML = `
-          <div class="chart-container">
-            <h3>${chart.name.replace('_', ' ').toUpperCase()}</h3>
-            <div class="chart-info" id="info-${index}">Loading...</div>
-            <svg id="chart-${index}-svg" preserveAspectRatio="xMidYMid meet"></svg>
-          </div>
-          <div class="controls">
-            <button class="btn" onclick="downloadChart(${index})">Download ${chart.name.replace('_', ' ')} SVG</button>
-          </div>
-        `;
-        
-        document.querySelector('.container').appendChild(tabContent);
-      });
-      
-      // Initialize the first chart
-      if (chartsData.length > 0) {
-        initializeVisualization(0);
-      }
-    }
-    
-    // Switch between tabs
-    function switchTab(index) {
-      // Update tab buttons
-      document.querySelectorAll('.tab').forEach((tab, i) => {
-        tab.classList.toggle('active', i === index);
-      });
-      
-      // Update tab content
-      document.querySelectorAll('.tab-content').forEach((content, i) => {
-        content.classList.toggle('active', i === index);
-      });
-      
-      // Initialize visualization for the selected chart if not already done
-      const svg = document.getElementById(`chart-${index}-svg`);
-      if (svg && !svg.hasAttribute('data-initialized')) {
-        initializeVisualization(index);
+        if (this.chartsData.length > 0) {
+          this.initializeInterface();
+        } else {
+          document.getElementById('loading').innerHTML = 
+            '<div class="loading"><h3>No charts found</h3><p>Please generate some charts first.</p></div>';
+        }
       }
       
-      currentChartIndex = index;
-    }
-    
-    // Initialize visualization for a specific chart
-    function initializeVisualization(chartIndex) {
-      const chart = chartsData[chartIndex];
-      const svg = d3.select(`#chart-${chartIndex}-svg`);
-      
-      // Mark as initialized
-      svg.node().setAttribute('data-initialized', 'true');
-      
-      const nodes = chart.nodes;
-      const links = chart.links;
-      
-      // Update chart info
-      const infoElement = document.getElementById(`info-${chartIndex}`);
-      infoElement.textContent = `${nodes.length} nodes, ${links.length} links`;
-      
-      // Calculate dimensions once (since positions are fixed)
-      const positionedNodes = nodes.filter(d => d.fx !== undefined || d.fy !== undefined);
-      
-      if (positionedNodes.length === 0) return;
-
-      const minX = d3.min(positionedNodes, d => d.fx);
-      const maxX = d3.max(positionedNodes, d => d.fx);
-      const minY = d3.min(positionedNodes, d => d.fy);
-      const maxY = d3.max(positionedNodes, d => d.fy);
-
-      const padding = 100;
-      const width = maxX - minX + 2 * padding;
-      const height = maxY - minY + 2 * padding;
-
-      // Set SVG dimensions once
-      svg.attr("width", Math.max(400, width))
-        .attr("height", Math.max(300, height))
-        .attr("viewBox", `${minX - padding} ${minY - padding} ${width} ${height}`);
-      
-      // Update chart info with dimensions
-      infoElement.textContent = `${nodes.length} nodes, ${links.length} links (${Math.round(width)}×${Math.round(height)}px)`;
-
-      // Draw links once (no simulation needed)
-      const link = svg.append("g")
-        .selectAll("line")
-        .data(links)
-        .join("line")
-        .attr("class", "link")
-        .attr("x1", d => d.source.fx || d.source.x)
-        .attr("y1", d => d.source.fy || d.source.y)
-        .attr("x2", d => d.target.fx || d.target.x)
-        .attr("y2", d => d.target.fy || d.target.y);
-
-      // Draw nodes once (no simulation needed)
-      const node = svg.append("g")
-        .selectAll("circle")
-        .data(nodes)
-        .join("circle")
-        .attr("r", d => d.type === "k" || d.type === "p" || d.type === "inc" || d.type === "dec" ? 5 : 2)
-        .attr("cx", d => d.fx || d.x)
-        .attr("cy", d => d.fy || d.y)
-        .attr("fill", d => {
-          if (d.type === "k") return "#4A90E2";
-          if (d.type === "p") return "#524be3";
-          if (d.type === "inc") return "#85DCB0";
-          if (d.type === "dec") return "#E27D60";
-          return "transparent";
-        })
-        .attr("stroke", d => (d.type === "k" || d.type === "p" || d.type === "inc" || d.type === "dec") ? "#333" : "none")
-        .attr("stroke-width", 0.5)
-        .attr("opacity", d => d.type === "strand" ? 0 : 1)
-        .style("pointer-events", d => d.type === "strand" ? "none" : "auto")
-        .style("cursor", "pointer")
-        .on("click", function(event, d) {
-          d3.select(this).attr("fill", "black");
+      /**
+       * Initialize the tabbed interface
+       */
+      initializeInterface() {
+        const tabsContainer = document.getElementById('tabs');
+        const loadingTab = document.getElementById('loading');
+        
+        loadingTab.remove();
+        
+        // Create tabs for each chart
+        this.chartsData.forEach((chart, index) => {
+          // Create tab button
+          const tabButton = document.createElement('button');
+          tabButton.className = `tab ${index === 0 ? 'active' : ''}`;
+          tabButton.textContent = chart.name.replace('_', ' ').toUpperCase();
+          tabButton.onclick = () => this.switchTab(index);
+          tabsContainer.appendChild(tabButton);
+          
+          // Create tab content
+          const tabContent = document.createElement('div');
+          tabContent.className = `tab-content ${index === 0 ? 'active' : ''}`;
+          tabContent.id = `chart-${index}`;
+          
+          tabContent.innerHTML = `
+            <div class="chart-container">
+              <h3>${chart.name.replace('_', ' ').toUpperCase()}</h3>
+              <div class="chart-info" id="info-${index}">Loading...</div>
+              <svg id="chart-${index}-svg" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+            <div class="controls">
+              <button class="btn" onclick="uiController.downloadChart(${index})">Download ${chart.name.replace('_', ' ')} SVG</button>
+            </div>
+          `;
+          
+          document.querySelector('.container').appendChild(tabContent);
         });
-
-      // Draw labels once
-      const labels = svg.append("g")
-        .selectAll("text")
-        .data(nodes)
-       
-        .text(d => d.type === "strand" ? "" : d.id)
-        .attr("font-size", 11)
-        .attr("text-anchor", "middle")
-        .attr("dy", 4)
-        .attr("x", d => d.fx || d.x)
-        .attr("y", d => (d.fy || d.y) + 35);
+        
+        // Initialize the first chart
+        if (this.chartsData.length > 0) {
+          this.renderChart(this.chartsData[0], 0);
+        }
+      }
+      
+      /**
+       * Switch between tabs
+       */
+      switchTab(index) {
+        // Update tab buttons
+        document.querySelectorAll('.tab').forEach((tab, i) => {
+          tab.classList.toggle('active', i === index);
+        });
+        
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach((content, i) => {
+          content.classList.toggle('active', i === index);
+        });
+        
+        // Initialize visualization for the selected chart if not already done
+        const svg = document.getElementById(`chart-${index}-svg`);
+        if (svg && !svg.hasAttribute('data-initialized')) {
+          this.renderChart(this.chartsData[index], index);
+        }
+        
+        this.currentChartIndex = index;
+      }
+      
+      /**
+       * Render a chart using ViewModels
+       * @param {ChartViewModel} chartData - Chart view model to render
+       * @param {number} chartIndex - Index of the chart
+       */
+      renderChart(chartData, chartIndex) {
+        const svg = d3.select(`#chart-${chartIndex}-svg`);
+        
+        // Mark as initialized
+        svg.node().setAttribute('data-initialized', 'true');
+        
+        // Calculate layout
+        const layout = this.renderer.calculateLayout(chartData.nodes);
+        
+        // Set SVG dimensions
+        svg.attr("width", layout.width)
+          .attr("height", layout.height)
+          .attr("viewBox", `${layout.minX} ${layout.minY} ${layout.width} ${layout.height}`);
+        
+        // Update chart info
+        const infoElement = document.getElementById(`info-${chartIndex}`);
+        infoElement.textContent = `${chartData.nodes.length} nodes, ${chartData.links.length} links (${Math.round(layout.width)}×${Math.round(layout.height)}px)`;
+        
+        // Render using ViewModels
+        this.renderer.renderLinks(svg, chartData.links, chartData.nodes);
+        this.renderer.renderNodes(svg, chartData.nodes);
+        this.renderer.renderLabels(svg, chartData.nodes);
+      }
+      
+      /**
+       * Refresh visualization (for observer pattern updates)
+       */
+      refreshVisualization() {
+        if (this.chartsData.length > 0) {
+          this.renderChart(this.chartsData[this.currentChartIndex], this.currentChartIndex);
+        }
+      }
     }
-    // Download chart function
-    function downloadChart(chartIndex) {
-  const chart = chartsData[chartIndex];
-  const svgEl = document.getElementById(`chart-${chartIndex}-svg`);
-  if (!svgEl) return;
-
-  const clone = svgEl.cloneNode(true);
-
-  // --- Basic cleanup ---
-  clone.querySelectorAll('[opacity="0"], [display="none"]').forEach(el => el.remove());
-  clone.removeAttribute('data-initialized');
-
-  // Remove <title> or <desc> tags if they exist
-  clone.querySelectorAll('title, desc').forEach(el => el.remove());
-
-  // Round numeric values to reduce text length
-  const serializer = new XMLSerializer();
-  let source = serializer.serializeToString(clone);
-
-  // Compress by rounding coordinates & trimming whitespace
-  source = source
-    .replace(/(\d+\.\d{3,})/g, (m) => Number(m).toFixed(2)) // round to 2 decimals
-    .replace(/\s{2,}/g, ' ')                               // collapse spaces
-    .replace(/>[\s\n]+</g, '><');                          // remove newlines between tags
-
-  // Ensure xmlns
-  if (!source.match(/^<svg[^>]+xmlns=/)) {
-    source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
-  }
-  source = '<?xml version="1.0" standalone="no"?>\n' + source;
-
-  // Create data URL
-  const blob = new Blob([source], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${chart.name}-compressed.svg`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+    
+    // ============================================
+    // PRESENTATION LAYER - UI CONTROLLER
+    // ============================================
+    
+    /**
+     * UIController - Handles user interactions
+     */
+    class UIController {
+      constructor(view) {
+        this.view = view;
+      }
+      
+      /**
+       * Handle tab switch
+       */
+      handleTabSwitch(index) {
+        this.view.switchTab(index);
+      }
+      
+      /**
+       * Handle download
+       */
+      downloadChart(chartIndex) {
+        const chart = this.view.chartsData[chartIndex];
+        const svgEl = document.getElementById(`chart-${chartIndex}-svg`);
+        if (!svgEl) return;
+        
+        const clone = svgEl.cloneNode(true);
+        
+        // Cleanup
+        clone.querySelectorAll('[opacity="0"], [display="none"]').forEach(el => el.remove());
+        clone.removeAttribute('data-initialized');
+        clone.querySelectorAll('title, desc').forEach(el => el.remove());
+        
+        // Serialize and compress
+        const serializer = new XMLSerializer();
+        let source = serializer.serializeToString(clone);
+        
+        source = source
+          .replace(/(\d+\.\d{3,})/g, (m) => Number(m).toFixed(2))
+          .replace(/\s{2,}/g, ' ')
+          .replace(/>[\s\n]+</g, '><');
+        
+        // Ensure xmlns
+        if (!source.match(/^<svg[^>]+xmlns=/)) {
+          source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        source = '<?xml version="1.0" standalone="no"?>\n' + source;
+        
+        // Create download
+        const blob = new Blob([source], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${chart.name}-compressed.svg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+    
+    // ============================================
+    // APPLICATION INITIALIZATION
+    // ============================================
+    
+    // Create and initialize the application
+    const visualizationView = new VisualizationView();
+    const uiController = new UIController(visualizationView);
+    
     // Start the application
-    loadChartsData();
+    visualizationView.loadChartsData();
   </script>
 </body>
 </html>
