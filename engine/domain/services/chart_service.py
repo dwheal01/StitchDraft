@@ -147,10 +147,6 @@ class ChartService:
     #     else:
     #         return ValidationResult(is_valid=True, errors=[])
     # 
-    # def attach_visualization_observer(
-    #     self,
-    #     chart: ChartSection,
-    #     observer: IChartObserver
-    # ) -> None:
-    #     """Attach a visualization observer to a chart."""
-    #     chart.attach(observer)
+    def attach_visualization_observer(self, chart: ChartSection, observer) -> None:
+      """Attach a visualization observer to a chart."""
+      chart.attach(observer)
