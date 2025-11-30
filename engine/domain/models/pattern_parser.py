@@ -1,5 +1,6 @@
 from typing import Dict, Tuple, List
 from engine.domain.interfaces.imarker_provider import IMarkerProvider
+from engine.data.models.expanded_pattern import ExpandedPattern
 
 class PatternParser:
     """Handles parsing and expansion of knitting patterns."""
@@ -25,7 +26,7 @@ class PatternParser:
         """
         self.marker_provider = marker_provider
     
-    def expand_pattern(self, pattern: str, available_stitches: int, side: str) -> Tuple[List[str], int, int, List[int]]:
+    def expand_pattern(self, pattern: str, available_stitches: int, side: str) -> ExpandedPattern:
         """Expand a pattern string into stitches."""
         print(pattern, available_stitches, side)
         markers = []
@@ -110,9 +111,15 @@ class PatternParser:
                 self.marker_provider.move_marker(side, i, num_increases - num_decreases, produced + (last_row_len - consumed))
             else:
                 self.marker_provider.remove_marker(side, noted_markers[i])
-        return expanded, consumed, produced, markers
+        
+        return ExpandedPattern(
+            stitches=expanded,
+            consumed=consumed,
+            produced=produced,
+            markers=markers
+        )
  
-    def _split_by_sm(self, pattern: str, side: str) -> Tuple[List[str], List[int]]:
+    def _split_by_sm(self, pattern: str, side: str) -> Tuple[List[str], List[int], List[int]]:
         """Split pattern by 'sm' tokens, preserving the sm tokens."""
         tokens = self.split_tokens(pattern)
         segments = []

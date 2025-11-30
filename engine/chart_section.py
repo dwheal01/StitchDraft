@@ -10,6 +10,9 @@ from engine.domain.models.chart_generator import ChartGenerator
 from engine.domain.models.operation_registry import OperationRegistry
 from engine.domain.interfaces.ichart_observer import IChartObserver
 from engine.data.models.chart_state_event import ChartStateEvent
+from engine.data.models.node import Node
+from engine.data.models.link import Link
+from engine.data.models.expanded_pattern import ExpandedPattern
 
 
 class ChartSection:
@@ -133,7 +136,7 @@ class ChartSection:
         """Get the current number of stitches."""
         return self.chart_queries.get_current_num_of_stitches()
     
-    def get_stitches_on_hold(self) -> List[Dict]:
+    def get_stitches_on_hold(self) -> List[Node]:
         """Get stitches currently on hold."""
         return self.chart_queries.get_stitches_on_hold()
     
@@ -145,16 +148,16 @@ class ChartSection:
         """Get all marker positions for a given side."""
         return self.chart_queries.get_markers(side)
     
-    def find_last_stitch(self) -> Dict[str, Any]:
+    def find_last_stitch(self) -> Node:
         """Get the rightmost stitch position if last row is RS, otherwise leftmost stitch position if last row is WS."""
         return self.chart_queries.find_last_stitch()
     
-    def find_first_stitch(self) -> Dict[str, Any]:
+    def find_first_stitch(self) -> Node:
         """Get the leftmost stitch position if last row is WS, otherwise rightmost stitch position if last row is RS."""
         return self.chart_queries.find_first_stitch()
     
     # Operations - delegate to OperationRegistry or implement directly
-    def place_on_hold(self) -> List[Dict]:
+    def place_on_hold(self) -> List[Node]:
         """Place the unconsumed stitches on hold and return the previous stitches on hold."""
         if self.operation_registry.has_operation('place_on_hold'):
             op = self.operation_registry.get_operation('place_on_hold')
@@ -167,7 +170,7 @@ class ChartSection:
             self.node_manager.set_stitches_on_hold()
             return previous_stitches_on_hold
     
-    def place_on_needle(self, stitches_on_hold: List[Dict], join_side: str) -> None:
+    def place_on_needle(self, stitches_on_hold: List[Node], join_side: str) -> None:
         """Place the stitches on needle."""
         if self.operation_registry.has_operation('place_on_needle'):
             op = self.operation_registry.get_operation('place_on_needle')
@@ -207,9 +210,15 @@ class ChartSection:
         else:
             side = "WS" if self.row_manager.is_wrong_side(isRound) else "RS"
             print("last row produced: ", self.node_manager.last_row_produced)
-            new_row, consumed, produced, markers = self.pattern_parser.expand_pattern(
-                pattern, self.node_manager.last_row_produced if self.row_manager.rows else float('inf'), side
+            expanded = self.pattern_parser.expand_pattern(
+                pattern, 
+                self.node_manager.last_row_produced, 
+                self.row_manager.last_row_side
             )
+            new_row = expanded.stitches
+            consumed = expanded.consumed
+            produced = expanded.produced
+            markers = expanded.markers
             
             for marker in markers:
                 self.marker_manager.add_marker(side, marker, len(new_row))
@@ -245,14 +254,14 @@ class ChartSection:
         if not self.node_manager.last_row_stitches:
             raise ValueError("No stitches to cast on to")
         
-        current_fy = self.node_manager.last_row_stitches[0]["fy"]
+        current_fy = self.node_manager.last_row_stitches[0].fy
         side = "RS" if self.row_manager.last_row_side == "RS" else "WS"
         current_row_number = self.get_row_num(side) - 1
         
         last_stitch = self.find_last_stitch()
-        last_fx = last_stitch["fx"]
+        last_fx = last_stitch.fx
         print("last_fx: ", last_fx)
-        connecting_id = last_stitch["id"]
+        connecting_id = last_stitch.id
         spacing = self.position_calculator.DEFAULT_SPACING
         
         old_count = self.node_manager.last_row_produced
@@ -269,8 +278,8 @@ class ChartSection:
             self._notify_node_added(node)
             
             if i == 0:
-                last_existing_id = self.node_manager.last_row_stitches[-2]["id"]
-                first_new_id = self.node_manager.last_row_stitches[-1]["id"]
+                last_existing_id = self.node_manager.last_row_stitches[-2].id
+                first_new_id = self.node_manager.last_row_stitches[-1].id
                 self.link_manager.add_horizontal_link(connecting_id, first_new_id)
                 self._notify_link_added({"source": connecting_id, "target": first_new_id})
             
@@ -278,7 +287,7 @@ class ChartSection:
                 self.node_manager.create_strand_node(current_row_number)
                 self.chart_generator.add_horizontal_links(self, len(self.node_manager.last_row_stitches) - 2)
         
-        current_row = [stitch["type"] for stitch in self.node_manager.last_row_stitches]
+        current_row = [stitch.type for stitch in self.node_manager.last_row_stitches]
         self.row_manager.rows[-1] = current_row
         
         self.node_manager.set_last_row_produced(self.node_manager.last_row_produced + count)
@@ -294,12 +303,12 @@ class ChartSection:
         else:
             # Fallback to direct implementation
             last_stitch_self = self.find_last_stitch()
-            new_fx = last_stitch_self["fx"] + self.position_calculator.DEFAULT_SPACING
+            new_fx = last_stitch_self.fx + self.position_calculator.DEFAULT_SPACING
             first_stitch_other = other.find_first_stitch()
-            offset = new_fx - first_stitch_other["fx"]
+            offset = new_fx - first_stitch_other.fx
             for stitch in other.node_manager.nodes:
-                if stitch["type"] != "strand":
-                    stitch["fx"] += offset
+                if stitch.type != "strand":
+                    stitch.fx += offset
             
             for marker in other.marker_manager.markers_rs:
                 self.marker_manager.markers_rs.append(marker + len(self.node_manager.last_row_stitches))
@@ -350,7 +359,7 @@ class ChartSection:
         for observer in self.observers:
             observer.on_stitch_count_changed(self, old_count, new_count)
     
-    def _notify_node_added(self, node: Optional[Dict] = None) -> None:
+    def _notify_node_added(self, node: Optional[Node] = None) -> None:
         """Notify observers of node addition."""
         for observer in self.observers:
             if node:

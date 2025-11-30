@@ -56,8 +56,9 @@ class ChartDataSerializer:
         Returns:
             ChartData object
         """
-        nodes = self._convert_nodes(chart.nodes)
-        links = self._convert_links(chart.links)
+        # Nodes and links are already Node/Link objects, just convert
+        nodes = list(chart.node_manager.nodes)  # Already List[Node]
+        links = list(chart.link_manager.links)   # Already List[Link]
         
         return ChartData(
             name=chart.name,
@@ -103,31 +104,13 @@ class ChartDataSerializer:
             key=lambda l: (l.source, l.target)
         )
     
-    def _convert_nodes(self, node_dicts: List[Dict[str, Any]]) -> List[Node]:
-        """Convert dictionary nodes to Node dataclass objects."""
-        nodes = []
-        for node_dict in node_dicts:
-            # Handle nodes that might be missing fx/fy (like strand nodes)
-            node = Node(
-                id=str(node_dict.get("id", "")),
-                type=str(node_dict.get("type", "")),
-                row=int(node_dict.get("row", 0)),
-                fx=float(node_dict.get("fx", 0.0)) if node_dict.get("fx") is not None else 0.0,
-                fy=float(node_dict.get("fy", 0.0)) if node_dict.get("fy") is not None else 0.0
-            )
-            nodes.append(node)
-        return nodes
+    def _convert_nodes(self, nodes: List[Node]) -> List[Node]:
+        """Convert nodes (already Node objects, return as-is)."""
+        return list(nodes)
     
-    def _convert_links(self, link_dicts: List[Dict[str, Any]]) -> List[Link]:
-        """Convert dictionary links to Link dataclass objects."""
-        links = []
-        for link_dict in link_dicts:
-            link = Link(
-                source=str(link_dict.get("source", "")),
-                target=str(link_dict.get("target", ""))
-            )
-            links.append(link)
-        return links
+    def _convert_links(self, links: List[Link]) -> List[Link]:
+        """Convert links (already Link objects, return as-is)."""
+        return list(links)
     
     def _node_to_dict(self, node: Node) -> Dict[str, Any]:
         """Convert Node dataclass to dictionary."""

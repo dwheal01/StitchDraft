@@ -1,4 +1,5 @@
-from typing import List, Dict
+from typing import List
+from engine.data.models.node import Node
 
 class PositionCalculator:
     """Handles calculation of stitch positions."""
@@ -22,13 +23,13 @@ class PositionCalculator:
         offset = (n - 1) / 2 * spacing
         return [i * spacing - offset for i in range(n)]
     
-    def calculate_anchors(self, row: List[str], side: str, previous_stitches: List[Dict], link_manager=None, node_counter: int = 0) -> List[float]:
+    def calculate_anchors(self, row: List[str], side: str, previous_stitches: List[Node], link_manager=None, node_counter: int = 0) -> tuple[List[float], List[Node]]:
       """Calculate anchor positions for a row."""
       if not previous_stitches:
          return self.centered_array(len(row)), []
       return self._calculate_from_previous_row(row, side, previous_stitches, link_manager, node_counter)
       
-    def _calculate_from_previous_row(self, row: List[str], side: str, previous_stitches: List[Dict], link_manager, node_counter: int) -> List[float]:
+    def _calculate_from_previous_row(self, row: List[str], side: str, previous_stitches: List[Node], link_manager, node_counter: int) -> tuple[List[float], List[Node]]:
       """Calculate positions based on previous row."""
       anchors = []
       prev_i = 0
@@ -41,16 +42,16 @@ class PositionCalculator:
 
          if self._is_regular_stitch(stitch):
                if side == "RS":
-                    while previous_stitches[prev_i]["type"] == "bo":
+                    while previous_stitches[prev_i].type == "bo":
                         prev_i += 1
-                    anchors.append(previous_stitches[prev_i]["fx"])
-                    link_manager.add_vertical_link(previous_stitches[prev_i]["id"], f"{node_counter + i}")
+                    anchors.append(previous_stitches[prev_i].fx)
+                    link_manager.add_vertical_link(previous_stitches[prev_i].id, f"{node_counter + i}")
 
                else:
-                    while previous_stitches[len(previous_stitches)-1-prev_i]["type"] == "bo":
+                    while previous_stitches[len(previous_stitches)-1-prev_i].type == "bo":
                         prev_i += 1
-                    anchors.append(previous_stitches[len(previous_stitches)-1-prev_i]["fx"])
-                    link_manager.add_vertical_link(previous_stitches[len(previous_stitches)-1-prev_i]["id"], f"{node_counter + i}")
+                    anchors.append(previous_stitches[len(previous_stitches)-1-prev_i].fx)
+                    link_manager.add_vertical_link(previous_stitches[len(previous_stitches)-1-prev_i].id, f"{node_counter + i}")
                # Add vertical link from previous row to current row
                prev_i += 1
          else:
@@ -72,32 +73,32 @@ class PositionCalculator:
       print("anchors: ", anchors)
       return self._center_anchors(anchors, row), unconsumed_stitches
 
-    def _add_increase_decrease_links(self, stitch: str, prev_i: int, current_i: int, previous_stitches: List[Dict], link_manager, node_counter: int) -> None:
+    def _add_increase_decrease_links(self, stitch: str, prev_i: int, current_i: int, previous_stitches: List[Node], link_manager, node_counter: int) -> None:
       """Add links for increase/decrease stitches."""
       if stitch == "inc":
          # Link from previous strand to increase
-         prev_strand_id = f"{int(previous_stitches[prev_i]['id'])-1}s"
+         prev_strand_id = f"{int(previous_stitches[prev_i].id)-1}s"
          link_manager.add_vertical_link(prev_strand_id, f"{node_counter + current_i}")
       elif stitch == "dec":
          # Link from two previous stitches to decrease
-         link_manager.add_vertical_link(previous_stitches[prev_i]["id"], f"{node_counter + current_i}")
-         link_manager.add_vertical_link(previous_stitches[prev_i+1]["id"], f"{node_counter + current_i}")
+         link_manager.add_vertical_link(previous_stitches[prev_i].id, f"{node_counter + current_i}")
+         link_manager.add_vertical_link(previous_stitches[prev_i+1].id, f"{node_counter + current_i}")
          
     def _is_regular_stitch(self, stitch: str) -> bool:
         """Check if stitch is a regular knit or purl."""
         return stitch in ["k", "p", "bo"]
     
-    def _calculate_increase_decrease_anchor(self, i: int, prev_i: int, previous_stitches: List[Dict], side: str) -> float:
+    def _calculate_increase_decrease_anchor(self, i: int, prev_i: int, previous_stitches: List[Node], side: str) -> float:
         """Calculate anchor position for increase/decrease stitches."""
         if i == 0:
-            return previous_stitches[0]["fx"] - 50
+            return previous_stitches[0].fx - 50
         elif i == len(previous_stitches):
-            return previous_stitches[-1]["fx"] + 50
+            return previous_stitches[-1].fx + 50
         else:
             if side == "RS":
-                return (previous_stitches[prev_i-1]["fx"] + previous_stitches[prev_i]["fx"]) / 2
+                return (previous_stitches[prev_i-1].fx + previous_stitches[prev_i].fx) / 2
             else:
-                return (previous_stitches[len(previous_stitches)-prev_i-1]["fx"] + previous_stitches[len(previous_stitches)-prev_i]["fx"]) / 2
+                return (previous_stitches[len(previous_stitches)-prev_i-1].fx + previous_stitches[len(previous_stitches)-prev_i].fx) / 2
     
     def _center_anchors(self, anchors: List[float], row: List[str]) -> List[float]:
         """Center the anchors around zero."""

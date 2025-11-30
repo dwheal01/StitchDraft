@@ -1,4 +1,5 @@
 from typing import Dict
+from dataclasses import replace
 from engine.domain.interfaces.ichart_operation import IChartOperation
 from engine.chart_section import ChartSection
 from engine.data.models.validation_results import ValidationResult
@@ -14,14 +15,31 @@ class JoinOperation(IChartOperation):
             raise ValueError("No other chart provided for join operation")
         
         last_stitch_self = chart.find_last_stitch()
-        new_fx = last_stitch_self["fx"] + chart.position_calculator.DEFAULT_SPACING
+        new_fx = last_stitch_self.fx + chart.position_calculator.DEFAULT_SPACING
         first_stitch_other = other.find_first_stitch()
-        offset = new_fx - first_stitch_other["fx"]
+        offset = new_fx - first_stitch_other.fx
         
-        # Offset all nodes in other chart
+        # Offset all nodes in other chart (create new Node objects since dataclass is immutable)
+        offset_nodes = []
         for stitch in other.node_manager.nodes:
-            if stitch["type"] != "strand":
-                stitch["fx"] += offset
+            if stitch.type != "strand":
+                # Create new node with offset fx
+                offset_nodes.append(replace(stitch, fx=stitch.fx + offset))
+            else:
+                # Keep strand nodes as-is
+                offset_nodes.append(stitch)
+        
+        # Replace nodes in other chart
+        other.node_manager.nodes = offset_nodes
+        
+        # Also offset last_row_stitches
+        offset_last_row = []
+        for stitch in other.node_manager.last_row_stitches:
+            if stitch.type != "strand":
+                offset_last_row.append(replace(stitch, fx=stitch.fx + offset))
+            else:
+                offset_last_row.append(stitch)
+        other.node_manager.last_row_stitches = offset_last_row
         
         # Merge markers
         for marker in other.marker_manager.markers_rs:

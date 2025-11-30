@@ -1,4 +1,5 @@
-from typing import List, Dict, Any, TYPE_CHECKING
+from typing import List, TYPE_CHECKING
+from engine.data.models.node import Node
 
 if TYPE_CHECKING:
     from engine.chart_section import ChartSection
@@ -24,12 +25,12 @@ class ChartQueries:
         row_num = 1
         if self._chart.node_manager.last_row_produced > 0:
             if side == "RS":
-                row_num += self._chart.node_manager.last_row_stitches[0]["row"]
+                row_num += self._chart.node_manager.last_row_stitches[0].row
             else:
-                row_num += self._chart.node_manager.last_row_stitches[-1]["row"]
+                row_num += self._chart.node_manager.last_row_stitches[-1].row
         return row_num
     
-    def get_stitches_on_hold(self) -> List[Dict]:
+    def get_stitches_on_hold(self) -> List[Node]:
         """Get stitches currently on hold."""
         return self._chart.node_manager.get_stitches_on_hold()
     
@@ -37,14 +38,14 @@ class ChartQueries:
         """Get all marker positions for a given side."""
         return self._chart.marker_manager.get_markers(side)
     
-    def find_last_stitch(self) -> Dict[str, Any]:
+    def find_last_stitch(self) -> Node:
         """Get the rightmost stitch position if last row is RS, otherwise leftmost stitch position if last row is WS."""
         if self._chart.row_manager.last_row_side == "RS":
             return self._chart.node_manager.last_row_stitches[-1]
         else:
             return self._chart.node_manager.last_row_stitches[0]
     
-    def find_first_stitch(self) -> Dict[str, Any]:
+    def find_first_stitch(self) -> Node:
         """Get the leftmost stitch position if last row is WS, otherwise rightmost stitch position if last row is RS."""
         if self._chart.row_manager.last_row_side == "RS":
             return self._chart.node_manager.last_row_stitches[0]

@@ -36,37 +36,22 @@ class PatternProcessor:
         context: PatternContext
     ) -> ExpandedPattern:
         """
-        Expand a pattern string into stitches using the provided context.
+        Expand a pattern string using PatternParser.
         
         Args:
-            pattern: The pattern string to expand
-            context: PatternContext with available stitches, side, etc.
+            pattern: Pattern string to expand
+            context: PatternContext with available stitches, side, markers, etc.
             
         Returns:
-            ExpandedPattern with stitches, consumed, produced, and markers
-            
-        Raises:
-            ValueError: If pattern is invalid or cannot be expanded
+            ExpandedPattern result
         """
-        if not self.pattern_parser:
-            raise ValueError("PatternParser must be provided to expand patterns")
-        
-        # Expand pattern using PatternParser
-        # PatternParser expects: (pattern, available_stitches, side)
-        # Returns: (expanded, consumed, produced, markers)
-        expanded, consumed, produced, markers = self.pattern_parser.expand_pattern(
-            pattern=pattern,
-            available_stitches=context.available_stitches,
-            side=context.side
+        expanded = self.pattern_parser.expand_pattern(
+            pattern,
+            context.available_stitches,
+            context.side
         )
-        
-        # Convert to ExpandedPattern dataclass
-        return ExpandedPattern(
-            stitches=expanded,
-            consumed=consumed,
-            produced=produced,
-            markers=markers
-        )
+        # expanded is already an ExpandedPattern, just return it
+        return expanded
     
     def validate_pattern(
         self,

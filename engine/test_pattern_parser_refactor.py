@@ -11,6 +11,7 @@ from engine.domain.models.pattern_parser import PatternParser
 from engine.domain.models.marker_manager import MarkerManager
 from engine.domain.interfaces.imarker_provider import IMarkerProvider
 from engine.domain.factories.chart_section_factory import ChartSectionFactory
+from engine.data.models.expanded_pattern import ExpandedPattern
 
 
 def test_marker_manager_implements_interface():
@@ -66,19 +67,21 @@ def test_pattern_parser_functionality():
     
     # Test basic pattern expansion
     pattern = "k5, p5"
-    expanded, consumed, produced, markers = parser.expand_pattern(pattern, 10, "RS")
+    expanded_result = parser.expand_pattern(pattern, 10, "RS")
     
-    assert len(expanded) == 10, f"Should expand to 10 stitches, got {len(expanded)}"
-    assert consumed == 10, f"Should consume 10 stitches, got {consumed}"
-    assert produced == 10, f"Should produce 10 stitches, got {produced}"
+    assert isinstance(expanded_result, ExpandedPattern), "Should return ExpandedPattern"
+    assert len(expanded_result.stitches) == 10, f"Should expand to 10 stitches, got {len(expanded_result.stitches)}"
+    assert expanded_result.consumed == 10, f"Should consume 10 stitches, got {expanded_result.consumed}"
+    assert expanded_result.produced == 10, f"Should produce 10 stitches, got {expanded_result.produced}"
     print("✓ Basic pattern expansion works")
     
     # Test with markers
     marker_manager.add_marker("RS", 5, 10)
     pattern_with_marker = "k5, sm, p5"
-    expanded, consumed, produced, markers = parser.expand_pattern(pattern_with_marker, 10, "RS")
+    expanded_result = parser.expand_pattern(pattern_with_marker, 10, "RS")
     
-    assert len(expanded) == 10, "Should expand to 10 stitches with marker"
+    assert isinstance(expanded_result, ExpandedPattern), "Should return ExpandedPattern"
+    assert len(expanded_result.stitches) == 10, "Should expand to 10 stitches with marker"
     print("✓ Pattern expansion with markers works")
     
     return parser
