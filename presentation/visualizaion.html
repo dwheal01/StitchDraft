@@ -307,28 +307,6 @@
       }
       
       /**
-       * Render labels for nodes
-       * @param {d3.Selection} svg - D3 selection of SVG element
-       * @param {Array<NodeViewModel>} nodes - Array of node view models
-       */
-      renderLabels(svg, nodes) {
-        const labelGroup = svg.append("g");
-        
-        const labels = labelGroup
-          .selectAll("text")
-          .data(nodes)
-          .join("text")
-          .text(d => d.type === "strand" ? "" : d.id)
-          .attr("font-size", 11)
-          .attr("text-anchor", "middle")
-          .attr("dy", 4)
-          .attr("x", d => d.x)
-          .attr("y", d => d.y + 35);
-        
-        return labels;
-      }
-      
-      /**
        * Calculate layout dimensions from nodes
        * @param {Array<NodeViewModel>} nodes - Array of node view models
        * @returns {Object} {minX, maxX, minY, maxY, width, height}
@@ -525,7 +503,6 @@
         // Render using ViewModels
         this.renderer.renderLinks(svg, chartData.links, chartData.nodes);
         this.renderer.renderNodes(svg, chartData.nodes);
-        this.renderer.renderLabels(svg, chartData.nodes);
       }
       
       /**
