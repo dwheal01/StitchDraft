@@ -8,8 +8,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from engine.domain.models.pattern_processor import PatternProcessor
-from engine.pattern_parser import PatternParser
-from engine.marker_manager import MarkerManager
+from engine.domain.models.pattern_parser import PatternParser
+from engine.domain.models.marker_manager import MarkerManager
 from engine.domain.models.validators.pattern_validator import PatternValidator
 from engine.data.models.pattern_context import PatternContext
 from engine.data.models.expanded_pattern import ExpandedPattern

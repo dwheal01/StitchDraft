@@ -1,5 +1,5 @@
 from typing import List, TYPE_CHECKING
-from engine.pattern_parser import PatternParser
+from engine.domain.models.pattern_parser import PatternParser
 from engine.domain.models.validators.pattern_validator import PatternValidator
 from engine.data.models.pattern_context import PatternContext
 from engine.data.models.expanded_pattern import ExpandedPattern

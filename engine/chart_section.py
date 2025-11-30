@@ -1,10 +1,10 @@
 from typing import List, Dict, Any, Tuple, Union, Optional
-from row_manager import RowManager
-from node_manager import NodeManager
-from link_manager import LinkManager
-from position_calculator import PositionCalculator
-from pattern_parser import PatternParser
-from marker_manager import MarkerManager
+from engine.domain.models.row_manager import RowManager
+from engine.domain.models.node_manager import NodeManager
+from engine.domain.models.link_manager import LinkManager
+from engine.domain.models.position_calculator import PositionCalculator
+from engine.domain.models.pattern_parser import PatternParser
+from engine.domain.models.marker_manager import MarkerManager
 from engine.domain.models.chart_queries import ChartQueries
 from engine.domain.models.chart_generator import ChartGenerator
 from engine.domain.models.operation_registry import OperationRegistry

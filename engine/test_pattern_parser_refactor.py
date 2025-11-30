@@ -7,8 +7,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from engine.pattern_parser import PatternParser
-from engine.marker_manager import MarkerManager
+from engine.domain.models.pattern_parser import PatternParser
+from engine.domain.models.marker_manager import MarkerManager
 from engine.domain.interfaces.imarker_provider import IMarkerProvider
 from engine.domain.factories.chart_section_factory import ChartSectionFactory
 
