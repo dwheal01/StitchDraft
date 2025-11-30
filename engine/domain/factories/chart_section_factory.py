@@ -150,17 +150,16 @@ class ChartSectionFactory:
         return MarkerManager()
     
     def _create_pattern_parser(self, marker_manager: MarkerManager) -> PatternParser:
-        """
-        Create a PatternParser instance with MarkerManager as IMarkerProvider.
-        
-        Note: Currently PatternParser uses callbacks. This will be refactored
-        to use IMarkerProvider interface later.
-        """
-        return PatternParser(
-            get_markers=marker_manager.get_markers,
-            move_marker=marker_manager.move_marker,
-            remove_marker=marker_manager.remove_marker
-        )
+      """
+      Create a PatternParser instance with MarkerManager as IMarkerProvider.
+      
+      Args:
+         marker_manager: MarkerManager instance (implements IMarkerProvider)
+         
+      Returns:
+         PatternParser instance
+      """
+      return PatternParser(marker_provider=marker_manager)
     
     def _create_chart_generator(self, position_calculator: PositionCalculator) -> ChartGenerator:
         """Create a ChartGenerator instance."""

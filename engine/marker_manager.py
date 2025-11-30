@@ -1,6 +1,7 @@
 from typing import List
+from engine.domain.interfaces.imarker_provider import IMarkerProvider
 
-class MarkerManager:
+class MarkerManager(IMarkerProvider):
     """Handles creation and management of markers."""
     
     def __init__(self):
@@ -31,6 +32,7 @@ class MarkerManager:
                self.add_marker(side, old_markers[i], num_stitches)
             elif i >= position:
                self.add_marker(side, old_markers[i] + shift_amount, num_stitches)
+    
     def remove_marker(self, side: str, position: int) -> None:
       print("position: ", position)
       if side == "RS":

@@ -70,11 +70,8 @@ class ChartSection:
         if pattern_parser is not None:
             self.pattern_parser = pattern_parser
         else:
-            self.pattern_parser = PatternParser(
-                self.marker_manager.get_markers,
-                self.marker_manager.move_marker,
-                self.marker_manager.remove_marker
-            )
+            # PatternParser now uses IMarkerProvider interface
+            self.pattern_parser = PatternParser(marker_provider=self.marker_manager)
         
         # New refactored components
         if chart_generator is not None:

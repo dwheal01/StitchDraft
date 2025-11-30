@@ -1,4 +1,5 @@
-from typing import Dict, Tuple, List, Callable
+from typing import Dict, Tuple, List
+from engine.domain.interfaces.imarker_provider import IMarkerProvider
 
 class PatternParser:
     """Handles parsing and expansion of knitting patterns."""
@@ -15,12 +16,15 @@ class PatternParser:
         "sm": (0, 0) # slip marker
     }
     
-    def __init__(self, get_markers: Callable[[str], List[int]], move_marker: Callable[[str, int, int, int], None], remove_marker: Callable[[str, int], None]):
-        self.get_markers = get_markers
-        self.move_marker = move_marker
-        self.remove_marker = remove_marker
-    
+    def __init__(self, marker_provider: IMarkerProvider):
+        """
+        Initialize PatternParser with a marker provider.
         
+        Args:
+            marker_provider: An object implementing IMarkerProvider interface
+        """
+        self.marker_provider = marker_provider
+    
     def expand_pattern(self, pattern: str, available_stitches: int, side: str) -> Tuple[List[str], int, int, List[int]]:
         """Expand a pattern string into stitches."""
         print(pattern, available_stitches, side)
@@ -103,9 +107,9 @@ class PatternParser:
             #         f"Segment {i} ('{segment}') consumed {consumed} stitches but expected {noted_markers[i]} stitches"
             #     )
             if noted_markers[i] not in markers_for_removal:
-                self.move_marker(side, i, num_increases - num_decreases, produced + (last_row_len - consumed))
+                self.marker_provider.move_marker(side, i, num_increases - num_decreases, produced + (last_row_len - consumed))
             else:
-                self.remove_marker(side, noted_markers[i])
+                self.marker_provider.remove_marker(side, noted_markers[i])
         return expanded, consumed, produced, markers
  
     def _split_by_sm(self, pattern: str, side: str) -> Tuple[List[str], List[int]]:
@@ -117,12 +121,12 @@ class PatternParser:
         markers_for_removal = []
 
         marker_index = 0
-        markers_list = self.get_markers(side)
+        markers_list = self.marker_provider.get_markers(side)
         for token in tokens:
             if token == "sm" or token == "rm":
                 # if token == "rm":
                 #     print("removing marker at index: ", marker_index)
-                #     self.remove_marker(side, marker_index)
+                #     self.marker_provider.remove_marker(side, marker_index)
                 if current_segment:
                     segments.append(",".join(current_segment))
                     current_segment = []
