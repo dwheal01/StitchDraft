@@ -179,6 +179,22 @@ class ChartSectionFactory:
         registry.register('join', JoinOperation())
         
         return registry
+     
+    def _create_pattern_processor(
+         self,
+         pattern_parser: PatternParser
+      ) -> 'PatternProcessor':
+         """
+         Create a PatternProcessor instance.
+         
+         Args:
+            pattern_parser: PatternParser instance to wrap
+            
+         Returns:
+            PatternProcessor instance
+         """
+         from engine.domain.models.pattern_processor import PatternProcessor
+         return PatternProcessor(pattern_parser=pattern_parser)
     
     # TODO: Implement these when StitchCounter and validators are created
     # def _create_stitch_counter(self) -> StitchCounter:

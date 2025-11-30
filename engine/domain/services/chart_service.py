@@ -3,12 +3,12 @@ from engine.domain.interfaces.ichart_repository import IChartRepository
 from engine.domain.factories.chart_section_factory import ChartSectionFactory
 from engine.data.models.chart_config import ChartConfig
 from engine.data.models.chart_data import ChartData
+from engine.data.models.expanded_pattern import ExpandedPattern
 from engine.chart_section import ChartSection
 from engine.data.repositories.chart_data_serializer import ChartDataSerializer
-# Note: PatternProcessor and ValidationHandler will be added later
-# from engine.domain.models.pattern_processor import PatternProcessor
-# from engine.domain.models.validation_handler import ValidationHandler
-# from engine.domain.interfaces.ichart_observer import IChartObserver
+from engine.domain.models.pattern_processor import PatternProcessor
+from engine.domain.models.validation.validation_handler import ValidationHandler
+from engine.domain.interfaces.ichart_observer import IChartObserver
 
 
 class ChartService:
@@ -19,8 +19,8 @@ class ChartService:
         chart_repository: IChartRepository,
         chart_factory: Optional[ChartSectionFactory] = None,
         serializer: Optional[ChartDataSerializer] = None,
-        # pattern_processor: Optional[PatternProcessor] = None,
-        # validation_chain: Optional[ValidationHandler] = None,
+        pattern_processor: Optional[PatternProcessor] = None,
+        validation_chain: Optional[ValidationHandler] = None,
     ):
         """
         Initialize ChartService.
@@ -29,13 +29,48 @@ class ChartService:
             chart_repository: Repository for chart persistence
             chart_factory: Factory for creating ChartSection instances
             serializer: Serializer for converting ChartSection to ChartData
+            pattern_processor: Processor for pattern expansion and validation
+            validation_chain: Validation handler chain
         """
         self.chart_repository = chart_repository
         self.chart_factory = chart_factory or ChartSectionFactory()
         self.serializer = serializer or ChartDataSerializer()
-        # self.pattern_processor = pattern_processor
-        # self.validation_chain = validation_chain
+        self.pattern_processor = pattern_processor
+        self.validation_chain = validation_chain
     
+    def process_pattern(
+         self,
+         chart: ChartSection,
+         pattern: str
+      ) -> ExpandedPattern:
+         """
+         Process a pattern using PatternProcessor.
+         
+         Args:
+            chart: The chart section
+            pattern: Pattern string to process
+            
+         Returns:
+            ExpandedPattern result
+            
+         Raises:
+            ValueError: If PatternProcessor is not available or pattern is invalid
+         """
+         if not self.pattern_processor:
+            raise ValueError("PatternProcessor not available in ChartService")
+         
+         # Create PatternContext from chart state
+         from engine.data.models.pattern_context import PatternContext
+         
+         context = PatternContext(
+            available_stitches=chart.get_current_num_of_stitches(),
+            side=chart.row_manager.last_row_side,
+            markers=chart.marker_manager.get_markers(chart.row_manager.last_row_side),
+            last_row_side=chart.row_manager.last_row_side,
+            is_round=False  # Could be determined from chart state if needed
+         )
+         return self.pattern_processor.validate_and_expand(pattern, context)
+
     def create_chart(
         self,
         name: str,
