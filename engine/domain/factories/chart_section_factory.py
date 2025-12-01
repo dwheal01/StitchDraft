@@ -35,15 +35,20 @@ class ChartSectionFactory:
       return StitchCountValidator()
 
     def _create_validation_chain(self) -> ValidationHandler:
-      """Create and chain validation handlers."""
-      stitch_handler = StitchCountValidationHandler()
-      pattern_handler = PatternValidationHandler()
-      order_handler = OrderValidationHandler()
-      
-      # Chain them together
-      stitch_handler.set_next(pattern_handler).set_next(order_handler)
-      
-      return stitch_handler
+        """Create and chain validation handlers using ValidationChainBuilder."""
+        from engine.domain.models.validation.validation_chain_builder import ValidationChainBuilder
+        
+        builder = ValidationChainBuilder()
+        builder.add_stitch_count_validation() \
+               .add_pattern_validation() \
+               .add_order_validation() \
+               .add_chart_data_validation()
+        
+        chain = builder.build()
+        if chain is None:
+            raise ValueError("Validation chain must have at least one handler")
+        
+        return chain
  
     """Factory for creating ChartSection instances with all dependencies."""
     
@@ -186,11 +191,3 @@ class ChartSectionFactory:
         registry.register('cast_on_additional', CastOnAdditionalOperation())
                 
         return registry
-    # TODO: Implement these when StitchCounter and validators are created
-    # def _create_stitch_counter(self) -> StitchCounter:
-    #     """Create a StitchCounter instance."""
-    #     return StitchCounter()
-    # 
-    # def _create_validator(self) -> StitchCountValidator:
-    #     """Create a StitchCountValidator instance."""
-    #     return StitchCountValidator()

@@ -13,24 +13,23 @@ from engine.domain.models.chart_generator import ChartGenerator
 from engine.domain.models.operation_registry import OperationRegistry
 
 
-def test_backward_compatibility():
-    """Test that old constructor still works (backward compatibility)."""
-    print("Testing backward compatibility (old constructor)...")
+def test_factory_creation():
+    """Test that ChartSection is created correctly via factory."""
+    print("Testing factory creation...")
     
-    # Test old-style constructor
-    chart = ChartSection(
-        name="backward_compat_test",
-        start_side="RS",
-        sts=23,
-        rows=21
+    # Use factory instead of direct construction
+    factory = ChartSectionFactory()
+    chart = factory.create_with_defaults(
+        name="factory_test",
+        start_side="RS"
     )
     
-    assert chart.name == "backward_compat_test"
+    assert chart.name == "factory_test"
     assert chart.start_side == "RS"
     assert chart.chart_queries is not None
     assert chart.chart_generator is not None
     assert chart.operation_registry is not None
-    print("✓ Old constructor works - backward compatibility maintained")
+    print("✓ Factory creates ChartSection correctly")
     
     return chart
 
@@ -291,8 +290,8 @@ if __name__ == "__main__":
     print("=" * 70)
     
     try:
-        # Test 1: Backward compatibility
-        chart1 = test_backward_compatibility()
+        # Test 1: Factory creation
+        chart1 = test_factory_creation()
         
         # Test 2: Dependency injection
         chart2 = test_dependency_injection()
@@ -319,7 +318,7 @@ if __name__ == "__main__":
         print("All refactoring tests passed! ✓")
         print("=" * 70)
         print("\nSummary:")
-        print("  ✓ Backward compatibility maintained")
+        print("  ✓ Factory creation working")        
         print("  ✓ Dependency injection working")
         print("  ✓ ChartQueries delegation working")
         print("  ✓ ChartGenerator delegation working")

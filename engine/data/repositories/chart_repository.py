@@ -6,14 +6,13 @@ from engine.domain.interfaces.ichart_repository import IChartRepository
 from engine.data.models.chart_data import ChartData
 from engine.data.repositories.chart_data_serializer import ChartDataSerializer
 from engine.presentation.mappers.view_model_mapper import ViewModelMapper
-# Note: ChartDataValidator will be added later
-# from engine.data.repositories.chart_data_validator import ChartDataValidator
+from engine.data.repositories.chart_data_validator import ChartDataValidator
 
 
 class ChartRepository(IChartRepository):
     """Repository for persisting and loading chart data."""
     
-    def __init__(self, data_path: str = "engine", validator=None):
+    def __init__(self, data_path: str = "engine", validator: Optional[ChartDataValidator] = None):
         """
         Initialize the repository.
         
@@ -22,7 +21,7 @@ class ChartRepository(IChartRepository):
             validator: Optional ChartDataValidator for validation
         """
         self.data_path = Path(data_path)
-        self.validator = validator
+        self.validator = validator or ChartDataValidator()
         self.serializer = ChartDataSerializer()
         self.view_model_mapper = ViewModelMapper()
         
@@ -38,7 +37,7 @@ class ChartRepository(IChartRepository):
         """
         # Validate if validator is available
         if self.validator:
-            validation_result = self.validator.validate(chart_data)
+            validation_result = self.validator.validate_chart_data(chart_data)
             validation_result.raise_if_invalid()
         
         # Serialize to JSON
