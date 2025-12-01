@@ -87,6 +87,11 @@ def test_validate_pattern():
     assert is_valid == False, "Unbalanced parentheses should fail"
     print("✓ Invalid pattern (unbalanced parentheses) fails validation")
     
+        # New test case: invalid token
+    is_valid = processor.validate_pattern("k4, L4", context)
+    assert is_valid is False, "Unknown operation L4 should fail validation"
+    print("✓ Invalid token L4 fails validation")
+    
     return processor
 
 

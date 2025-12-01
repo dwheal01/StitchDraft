@@ -40,7 +40,12 @@ class PatternValidator:
             errors.append(
                 f"Pattern requires {total_stitches} stitches but only {context.available_stitches} available"
             )
-        
+
+        # NEW: token-level validation
+        token_result = self.validate_tokens(tokens)
+        if not token_result.is_valid:
+            errors.extend(token_result.errors)
+
         return ValidationResult(
             is_valid=len(errors) == 0,
             errors=errors
