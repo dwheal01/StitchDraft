@@ -171,31 +171,21 @@ class ChartSectionFactory:
     
     def _create_operation_registry(self) -> OperationRegistry:
         """Create and configure an OperationRegistry with all operations."""
+        from engine.domain.models.operations.cast_on_operation import CastOnOperation
+        from engine.domain.models.operations.add_row_operation import AddRowOperation        
+        from engine.domain.models.operations.cast_on_additional_operation import CastOnAdditionalOperation
+        
         registry = OperationRegistry()
         
         # Register all operations
         registry.register('place_on_hold', PlaceOnHoldOperation())
         registry.register('place_on_needle', PlaceOnNeedleOperation())
         registry.register('join', JoinOperation())
-        
+        registry.register('cast_on', CastOnOperation())
+        registry.register('add_row', AddRowOperation())
+        registry.register('cast_on_additional', CastOnAdditionalOperation())
+                
         return registry
-     
-    def _create_pattern_processor(
-         self,
-         pattern_parser: PatternParser
-      ) -> 'PatternProcessor':
-         """
-         Create a PatternProcessor instance.
-         
-         Args:
-            pattern_parser: PatternParser instance to wrap
-            
-         Returns:
-            PatternProcessor instance
-         """
-         from engine.domain.models.pattern_processor import PatternProcessor
-         return PatternProcessor(pattern_parser=pattern_parser)
-    
     # TODO: Implement these when StitchCounter and validators are created
     # def _create_stitch_counter(self) -> StitchCounter:
     #     """Create a StitchCounter instance."""

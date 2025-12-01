@@ -186,9 +186,7 @@ class ChartSection:
     # Node creation - delegate to ChartGenerator
     def add_nodes(self, row: List[str], side: str, isRound: bool = False) -> None:
         """Add nodes for a new row."""
-        print("side: ", side)
         row_num = self.get_row_num(side)
-        print("row_num: ", row_num)
         
         # Use ChartGenerator to create nodes
         self.chart_generator.create_nodes_for_row(self, row, side, row_num)
@@ -205,96 +203,119 @@ class ChartSection:
     
     def add_row(self, pattern: Union[str, int], isRound: bool = False) -> 'ChartSection':
         """Add a new row to the pattern."""
-        if isinstance(pattern, int):
-            new_row = self.row_manager.duplicate_row(pattern)
+        if self.operation_registry.has_operation('add_row'):
+            op = self.operation_registry.get_operation('add_row')
+            return op.execute(self, {'pattern': pattern, 'is_round': isRound})
         else:
-            side = "WS" if self.row_manager.is_wrong_side(isRound) else "RS"
-            print("last row produced: ", self.node_manager.last_row_produced)
-            expanded = self.pattern_parser.expand_pattern(
-                pattern, 
-                self.node_manager.last_row_produced, 
-                self.row_manager.last_row_side
-            )
-            new_row = expanded.stitches
-            consumed = expanded.consumed
-            produced = expanded.produced
-            markers = expanded.markers
+            # Fallback to direct implementation
+            if isinstance(pattern, int):
+                new_row = self.row_manager.duplicate_row(pattern)
+                # For duplicate_row, consumed and produced are the same (no net change)
+                consumed = len(new_row)
+                produced = len(new_row)
+            else:
+                side = "WS" if self.row_manager.is_wrong_side(isRound) else "RS"
+                expanded = self.pattern_parser.expand_pattern(
+                    pattern, 
+                    self.node_manager.last_row_produced, 
+                    self.row_manager.last_row_side
+                )
+                new_row = expanded.stitches
+                consumed = expanded.consumed
+                produced = expanded.produced
+                markers = expanded.markers
+                
+                for marker in markers:
+                    self.marker_manager.add_marker(side, marker, len(new_row))
+                    self._notify_marker_placed(side, marker)
             
-            for marker in markers:
-                self.marker_manager.add_marker(side, marker, len(new_row))
-                self._notify_marker_placed(side, marker)
+            new_row = self.row_manager.reverse_row_if_needed(new_row, isRound)
+            old_count = self.node_manager.last_row_produced
+            self.add_nodes(new_row, side, isRound)
+
+            self.node_manager.set_last_row_produced(produced + (self.node_manager.last_row_produced - consumed))
+            
+            # Record operation in stitch counter
+            self.stitch_counter.record_operation("add_row", consumed, produced)
+            
+            if old_count != self.node_manager.last_row_produced:
+                self._notify_stitch_count_changed(old_count, self.node_manager.last_row_produced)
+            
+            return self
         
-        new_row = self.row_manager.reverse_row_if_needed(new_row, isRound)
-        old_count = self.node_manager.last_row_produced
-        self.add_nodes(new_row, side, isRound)
-        print("produced: ", produced)
-        print("consumed: ", consumed)
-        print("number of last row produced: ", self.node_manager.last_row_produced)
-        
-        self.node_manager.set_last_row_produced(produced + (self.node_manager.last_row_produced - consumed))
-        if old_count != self.node_manager.last_row_produced:
-            self._notify_stitch_count_changed(old_count, self.node_manager.last_row_produced)
-        
-        print(len(self.node_manager.last_row_stitches))
-        return self
-    
     def cast_on_start(self, count: int) -> None:
         """Cast on the specified number of stitches."""
-        old_count = self.node_manager.last_row_produced
-        if self.start_side == "RS":
-            self.add_nodes(["k"] * count, "WS")
+        if self.operation_registry.has_operation('cast_on'):
+            op = self.operation_registry.get_operation('cast_on')
+            op.execute(self, {'count': count})
         else:
-            self.add_nodes(["k"] * count, "RS")
-        self.node_manager.set_last_row_produced(count)
-        if old_count != count:
-            self._notify_stitch_count_changed(old_count, count)
-    
+            # Fallback to direct implementation
+            old_count = self.node_manager.last_row_produced
+            if self.start_side == "RS":
+                self.add_nodes(["k"] * count, "WS")
+            else:
+                self.add_nodes(["k"] * count, "RS")
+            self.node_manager.set_last_row_produced(count)
+            
+            # Record operation in stitch counter
+            self.stitch_counter.record_operation("cast_on_start", 0, count)
+            
+            if old_count != count:
+                self._notify_stitch_count_changed(old_count, count)
+                     
     def cast_on(self, count: int) -> 'ChartSection':
         """Cast on additional stitches to extend the current chart."""
-        if not self.node_manager.last_row_stitches:
-            raise ValueError("No stitches to cast on to")
-        
-        current_fy = self.node_manager.last_row_stitches[0].fy
-        side = "RS" if self.row_manager.last_row_side == "RS" else "WS"
-        current_row_number = self.get_row_num(side) - 1
-        
-        last_stitch = self.find_last_stitch()
-        last_fx = last_stitch.fx
-        print("last_fx: ", last_fx)
-        connecting_id = last_stitch.id
-        spacing = self.position_calculator.DEFAULT_SPACING
-        
-        old_count = self.node_manager.last_row_produced
-        
-        # Create new cast-on stitches positioned to the right
-        for i in range(count):
-            if side == "RS":
-                new_fx = last_fx + (i + 1) * spacing
-            else:
-                new_fx = last_fx - (i + 1) * spacing
-            print("new_fx: ", new_fx)
-            node = self.node_manager.create_stitch_node("k", new_fx, current_fy, current_row_number)
-            self.node_manager.last_row_stitches.append(node)
-            self._notify_node_added(node)
+        if self.operation_registry.has_operation('cast_on_additional'):
+            op = self.operation_registry.get_operation('cast_on_additional')
+            return op.execute(self, {'count': count})
+        else:
+            # Fallback to direct implementation
+            if not self.node_manager.last_row_stitches:
+                raise ValueError("No stitches to cast on to")
             
-            if i == 0:
-                last_existing_id = self.node_manager.last_row_stitches[-2].id
-                first_new_id = self.node_manager.last_row_stitches[-1].id
-                self.link_manager.add_horizontal_link(connecting_id, first_new_id)
-                self._notify_link_added({"source": connecting_id, "target": first_new_id})
+            current_fy = self.node_manager.last_row_stitches[0].fy
+            side = "RS" if self.row_manager.last_row_side == "RS" else "WS"
+            current_row_number = self.get_row_num(side) - 1
             
-            if i < count - 1:
-                self.node_manager.create_strand_node(current_row_number)
-                self.chart_generator.add_horizontal_links(self, len(self.node_manager.last_row_stitches) - 2)
-        
-        current_row = [stitch.type for stitch in self.node_manager.last_row_stitches]
-        self.row_manager.rows[-1] = current_row
-        
-        self.node_manager.set_last_row_produced(self.node_manager.last_row_produced + count)
-        if old_count != self.node_manager.last_row_produced:
-            self._notify_stitch_count_changed(old_count, self.node_manager.last_row_produced)
-        return self
-    
+            last_stitch = self.find_last_stitch()
+            last_fx = last_stitch.fx
+            connecting_id = last_stitch.id
+            spacing = self.position_calculator.DEFAULT_SPACING
+            
+            old_count = self.node_manager.last_row_produced
+            
+            # Create new cast-on stitches positioned to the right
+            for i in range(count):
+                if side == "RS":
+                    new_fx = last_fx + (i + 1) * spacing
+                else:
+                    new_fx = last_fx - (i + 1) * spacing
+                node = self.node_manager.create_stitch_node("k", new_fx, current_fy, current_row_number)
+                self.node_manager.last_row_stitches.append(node)
+                self._notify_node_added(node)
+                
+                if i == 0:
+                    last_existing_id = self.node_manager.last_row_stitches[-2].id
+                    first_new_id = self.node_manager.last_row_stitches[-1].id
+                    self.link_manager.add_horizontal_link(connecting_id, first_new_id)
+                    self._notify_link_added({"source": connecting_id, "target": first_new_id})
+                
+                if i < count - 1:
+                    self.node_manager.create_strand_node(current_row_number)
+                    self.chart_generator.add_horizontal_links(self, len(self.node_manager.last_row_stitches) - 2)
+            
+            current_row = [stitch.type for stitch in self.node_manager.last_row_stitches]
+            self.row_manager.rows[-1] = current_row
+            
+            self.node_manager.set_last_row_produced(self.node_manager.last_row_produced + count)
+            
+            # Record operation in stitch counter
+            self.stitch_counter.record_operation("cast_on", 0, count)
+            
+            if old_count != self.node_manager.last_row_produced:
+                self._notify_stitch_count_changed(old_count, self.node_manager.last_row_produced)
+            return self
+
     def join(self, other: 'ChartSection') -> 'ChartSection':
         """Join this chart section with another chart section."""
         if self.operation_registry.has_operation('join'):
@@ -315,12 +336,18 @@ class ChartSection:
             for marker in other.marker_manager.markers_ws:
                 self.marker_manager.markers_ws.append(marker + len(self.node_manager.last_row_stitches))
             
+            # Count stitches being added (non-strand nodes from other chart)
+            added_stitches = len([s for s in other.node_manager.last_row_stitches if s.type != "strand"])
+            
             self.node_manager.nodes.extend(other.node_manager.nodes)
             self.node_manager.node_counter += other.node_manager.node_counter
             self.node_manager.last_row_stitches.extend(other.node_manager.last_row_stitches)
             
+            # Record operation in stitch counter
+            self.stitch_counter.record_operation("join", 0, added_stitches)
+            
             return self
-    
+        
     def place_marker(self, side: str, position: int) -> None:
         """Place a marker at the specified needle position."""
         self.marker_manager.add_marker(side, position, len(self.node_manager.last_row_stitches))

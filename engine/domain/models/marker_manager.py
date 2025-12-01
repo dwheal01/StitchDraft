@@ -34,7 +34,6 @@ class MarkerManager(IMarkerProvider):
                self.add_marker(side, old_markers[i] + shift_amount, num_stitches)
     
     def remove_marker(self, side: str, position: int) -> None:
-      print("position: ", position)
       if side == "RS":
           index = self.markers_rs.index(position)
           self.markers_rs.remove(self.markers_rs[index])

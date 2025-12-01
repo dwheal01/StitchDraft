@@ -59,13 +59,10 @@ class ChartSection:
     
     def add_nodes(self, row: List[str], side: str, isRound: bool = False) -> None:
       """Add nodes for a new row."""
-      print("side: ", side)
       anchors, unconsumed_stitches = self.position_calculator.calculate_anchors(
          row, side, self.node_manager.last_row_stitches, self.link_manager, self.node_manager.node_counter
       )
-      print("number of anchors: ", len(anchors))
       row_num = self.get_row_num(side)
-      print("row_num: ", row_num)
       self._create_nodes_for_row(row, unconsumed_stitches, side, row_num, anchors, isRound)
       self.row_manager.add_row(row, isRound)
 
@@ -80,11 +77,9 @@ class ChartSection:
             new_row = self.row_manager.duplicate_row(pattern)
         else:
             side = "WS" if self.row_manager.is_wrong_side(isRound) else "RS"
-            print("last row produced: ", self.node_manager.last_row_produced)
             new_row, consumed, produced, markers = self.pattern_parser.expand_pattern(
                 pattern, self.node_manager.last_row_produced if self.row_manager.rows else float('inf'), side
             )
-            # print("number of last row produced: ", self.node_manager.last_row_produced)
 
             # self.node_manager.set_last_row_produced(produced)
             # self._validate_row_consumption(consumed, produced)
@@ -95,12 +90,7 @@ class ChartSection:
             
         new_row = self.row_manager.reverse_row_if_needed(new_row, isRound)
         self.add_nodes(new_row, side, isRound)
-        print("produced: ", produced)
-        print("consumed: ", consumed)
-        print("number of last row produced: ", self.node_manager.last_row_produced)
-
         self.node_manager.set_last_row_produced(produced+(self.node_manager.last_row_produced-consumed))
-        print(len(self.node_manager.last_row_stitches))
 
         return self
     
@@ -114,14 +104,12 @@ class ChartSection:
     
     def find_last_stitch(self) -> Dict[str, Any]:
       """Get the rightmost stitch position if last row is RS, otherwise leftmost stitch position if last row is WS."""
-      print(self.row_manager.last_row_side)
       if self.row_manager.last_row_side == "RS":
         return self.node_manager.last_row_stitches[-1]
       else:
         return self.node_manager.last_row_stitches[0]
       
     def find_first_stitch(self) -> Dict[str, Any]:
-      print(self.row_manager.last_row_side)
       """Get the leftmost stitch position if last row is WS, otherwise rightmost stitch position if last row is RS."""
       if self.row_manager.last_row_side == "RS":
         return self.node_manager.last_row_stitches[0]
@@ -141,7 +129,6 @@ class ChartSection:
         
         last_stitch = self.find_last_stitch()
         last_fx = last_stitch["fx"]
-        print("last_fx: ", last_fx)
         connecting_id = last_stitch["id"]
         spacing = self.position_calculator.DEFAULT_SPACING
         
@@ -153,7 +140,6 @@ class ChartSection:
             else:
               new_fx = last_fx - (i + 1) * spacing
             # Create the stitch node
-            print("new_fx: ", new_fx)
             node = self.node_manager.create_stitch_node("k", new_fx, current_fy, current_row_number)
             self.node_manager.last_row_stitches.append(node)
             
@@ -199,9 +185,6 @@ class ChartSection:
         """Create nodes for a row of stitches."""
         self.node_manager.last_row_stitches = []
 
-        print("row_num: ", row_num)
-        print("len(self.row_manager.rows): ", len(self.row_manager.rows))
-        print("unconsumed_stitches: ", unconsumed_stitches)
         for i, stitch in enumerate(row):
             if side == "WS":
               if stitch == "k":
@@ -215,11 +198,9 @@ class ChartSection:
             if i != len(row) - 1:
                 self.node_manager.create_strand_node(row_num)
                 self._add_horizontal_links(i)
-        print("unconsumed_stitches: ", unconsumed_stitches)
 
         self.node_manager.last_row_stitches.extend(unconsumed_stitches)
         self.node_manager.set_last_row_unconsumed_stitches(unconsumed_stitches)
-        print("last row stitches: ", self.node_manager.last_row_stitches)
     
     def _add_horizontal_links(self, i: int) -> None:
         """Add horizontal links between stitches."""

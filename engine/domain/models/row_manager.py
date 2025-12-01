@@ -32,7 +32,6 @@ class RowManager:
         """Determine if current row should be reversed."""
         if isRound:
             if len(self.rows) == 1:
-                print("first row", self.last_row_side == "RS")
                 return self.last_row_side == "RS"
             return self.last_row_side == "WS"
         else:

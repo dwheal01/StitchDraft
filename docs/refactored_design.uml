@@ -137,6 +137,8 @@ package "Domain Layer" {
         + generateNodes(charSection: ChartSection, row: List[str], context: GenerationContext): List[Node]
         + generateLinks(charSection: ChartSection, previousRow: List[Node], currentRow: List[Node]): List[Link]
         + calculatePositions(charSection: ChartSection, row: List[str], previousStitches: List[Node]): List[Position]
+        + createNodesForRow(chart: ChartSection, row: List[str], side: str, rowNum: int): void
+        + addHorizontalLinks(chart: ChartSection, index: int): void
     }
 
     class ChartSectionFactory {
@@ -145,15 +147,19 @@ package "Domain Layer" {
         + createWithDefaults(name: str, start_side: str, sts: int, rows: int): ChartSection
         - createStitchCounter(): StitchCounter
         - createValidator(): StitchCountValidator
+        - createValidationChain(): ValidationHandler
         - createRowManager(start_side: str): RowManager
         - createNodeManager(): NodeManager
         - createLinkManager(): LinkManager
         - createPositionCalculator(sts: int, rows: int): PositionCalculator
         - createMarkerManager(): MarkerManager
-        - createPatternParser(markerProvider: IMarkerProvider): PatternParser
+        - createPatternParser(markerManager: MarkerManager): PatternParser
+        - createChartGenerator(positionCalculator: PositionCalculator): ChartGenerator
+        - createChartQueries(chart: ChartSection): ChartQueries
+        - createOperationRegistry(): OperationRegistry
     }
     
-    class ChartSection {
+   class ChartSection {
       - name: str
       - start_side: str
       - observers: List[IChartObserver]
@@ -166,7 +172,7 @@ package "Domain Layer" {
       - markerManager: MarkerManager
       - patternParser: PatternParser
       - chartGenerator: ChartGenerator
-      - queries: ChartQueries
+      - chartQueries: ChartQueries
       - operationRegistry: OperationRegistry
       --
       ' Observer management
@@ -175,19 +181,28 @@ package "Domain Layer" {
       + notifyObservers(event: ChartStateEvent): void
       
       ' High-level operations (delegate to commands)
-      + add_row(pattern: str, isRound: bool): ChartSection
-      + add_round(pattern: str): ChartSection
+      + add_row(pattern: Union[str, int], isRound: bool): ChartSection
+      + add_round(pattern: Union[str, int]): ChartSection
       + cast_on_start(count: int): void
       + cast_on(count: int): ChartSection
       + place_marker(side: str, position: int): void
       + repeat_rows(patterns: List[str], count: int): void
       + repeat_rounds(patterns: List[str], count: int): void
       + join(other: ChartSection): ChartSection
-      + place_on_hold(): List[Dict]
-      + place_on_needle(stitches: List[Dict], side: str): void
+      + place_on_hold(): List[Node]
+      + place_on_needle(stitches_on_hold: List[Node], join_side: str): void
       
-      ' Query access
-      + get_queries(): ChartQueries
+      ' Node creation
+      + add_nodes(row: List[str], side: str, isRound: bool): void
+      
+      ' Query methods (delegate to ChartQueries)
+      + get_current_row_num(): int
+      + get_current_num_of_stitches(): int
+      + get_stitches_on_hold(): List[Node]
+      + get_row_num(side: str): int
+      + get_markers(side: str): List[int]
+      + find_last_stitch(): Node
+      + find_first_stitch(): Node
       
       ' Properties
       + nodes: List[Node]
@@ -208,10 +223,10 @@ package "Domain Layer" {
       + get_current_num_of_stitches(): int
       + get_current_row_num(): int
       + get_row_num(side: str): int
-      + get_stitches_on_hold(): List[Dict]
+      + get_stitches_on_hold(): List[Node]
       + get_markers(side: str): List[int]
-      + find_last_stitch(): Dict[str, Any]
-      + find_first_stitch(): Dict[str, Any]
+      + find_last_stitch(): Node
+      + find_first_stitch(): Node
    }
 
    class ChartGenerator {
@@ -246,12 +261,13 @@ package "Domain Layer" {
     }
     
     class PatternParser {
-        - CONSUME_PRODUCE: Dict[str, Tuple[int, int]]
-        - markerProvider: IMarkerProvider
-        --
-        + expand_pattern(pattern: str, available_stitches: int, side: str): ExpandedPattern
-        + split_tokens(pattern: str): List[str]
-        + parse_token(token: str): Tuple[str, int]
+      - CONSUME_PRODUCE: Dict[str, Tuple[int, int]]
+      - markerProvider: IMarkerProvider
+      --
+      + expand_pattern(pattern: str, available_stitches: int, side: str): ExpandedPattern
+      + split_tokens(pattern: str): List[str]
+      + parse_token(token: str): Tuple[str, int]
+      - _split_by_sm(pattern: str, side: str): Tuple[List[str], List[int], List[int]]
     }
     
     class RowManager {
@@ -259,11 +275,13 @@ package "Domain Layer" {
         - start_side: str
         - last_row_side: str
         --
+        + set_last_row_side(side: str): void
         + add_row(row: List[str], isRound: bool): void
         + add_round(row: List[str]): void
         + is_wrong_side(isRound: bool): bool
         + reverse_row_if_needed(row: List[str], isRound: bool): List[str]
         + duplicate_row(index: int): List[str]
+        - _validate_row_index(index: int): void
     }
     
     class NodeManager {
@@ -276,6 +294,9 @@ package "Domain Layer" {
         + create_strand_node(row: int): Node
         + set_stitches_on_hold(): int
         + places_stitches_on_needle(stitches: List[Node]): void
+        + set_last_row_unconsumed_stitches(unconsumed_stitches: List[Node]): void
+        + get_stitches_on_hold(): List[Node]
+        + set_last_row_produced(produced: int): void
     }
     
     class LinkManager {
@@ -291,8 +312,13 @@ package "Domain Layer" {
         - BASE_Y_OFFSET: float
         --
         + set_guage(sts: int, rows: int): void
-        + calculate_anchors(row: List[str], side: str, previous_stitches: List[Node], link_manager: LinkManager, node_counter: int): List[float]
-        + centered_array(n: int, spacing: float): List[float]
+        + calculate_anchors(row: List[str], side: str, previous_stitches: List[Node], link_manager: LinkManager, node_counter: int): tuple[List[float], List[Node]]
+        + centered_array(n: int, spacing: int): List[float]
+        - _calculate_from_previous_row(row: List[str], side: str, previous_stitches: List[Node], link_manager: LinkManager, node_counter: int): tuple[List[float], List[Node]]
+        - _add_increase_decrease_links(stitch: str, prev_i: int, current_i: int, previous_stitches: List[Node], link_manager: LinkManager, node_counter: int): void
+        - _is_regular_stitch(stitch: str): bool
+        - _calculate_increase_decrease_anchor(i: int, prev_i: int, previous_stitches: List[Node], side: str): float
+        - _center_anchors(anchors: List[float], row: List[str]): List[float]
     }
     
     class MarkerManager {
@@ -303,6 +329,7 @@ package "Domain Layer" {
         + get_markers(side: str): List[int]
         + move_marker(side: str, position: int, shift_amount: int, num_stitches: int): void
         + remove_marker(side: str, position: int): void
+        + get_markers(side: str): List[int]
     }
 
     abstract class ValidationHandler {
@@ -311,7 +338,6 @@ package "Domain Layer" {
         + setNext(handler: ValidationHandler): void
         + handle(request: ValidationRequest): ValidationResult
         + {abstract} validate(request: ValidationRequest): ValidationResult
-        - passToNext(request: ValidationRequest): ValidationResult
     }
     
     class ValidationRequest {
@@ -321,6 +347,8 @@ package "Domain Layer" {
         + links: List[Link]
         + operation: str
         + context: PatternContext
+        + consumed: int
+        + produced: int
     }
 
     class StitchCountValidationHandler extends ValidationHandler {
@@ -355,6 +383,7 @@ package "Domain Layer" {
       + recordOperation(operation: str, consumed: int, produced: int): void
       + validateConsistency(): void
       + getHistory(): List[StitchCountEvent]
+      + reset(count: int): void
    }
 
    class StitchCountValidator {
@@ -389,17 +418,19 @@ package "Domain Layer" {
         + execute(chart: ChartSection, params: Dict): ChartSection
         + validate(params: Dict, context: PatternContext): ValidationResult
     }
-    
-    class ShortRowOperation {
-        + execute(chart: ChartSection, params: Dict): ChartSection
-        + validate(params: Dict, context: PatternContext): ValidationResult
-    }
+
+    class CastOnAdditionalOperation {
+       + execute(chart: ChartSection, params: Dict): ChartSection
+       + validate(params: Dict, context: PatternContext): ValidationResult
+    } 
     
     class OperationRegistry {
         - operations: Dict[str, IChartOperation]
         --
         + register(name: str, operation: IChartOperation): void
         + getOperation(name: str): IChartOperation
+        + has_operation(name: str): bool:
+
     }
 }
 

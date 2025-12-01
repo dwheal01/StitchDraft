@@ -25,8 +25,6 @@ class NodeManager:
             self.last_row_stitches.remove(stitch)
             if stitch.type != "bo":
                 count += 1
-        print("count: ", count)
-        print("last row produced: ", self.last_row_produced)
         self.set_last_row_produced(self.last_row_produced - count)
         return len(self.stitches_on_hold)
     
@@ -39,9 +37,7 @@ class NodeManager:
             if stitch.type != "bo":
                 num_stitches_on_needle += 1
         self.last_row_produced = num_stitches_on_needle
-        print("number of stitches on needle: ", num_stitches_on_needle)
-        print("stitches on needle: ", self.last_row_stitches)
-    
+
     def set_last_row_produced(self, produced: int) -> None:
         self.last_row_produced = produced
     

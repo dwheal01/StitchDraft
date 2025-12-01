@@ -96,10 +96,17 @@ def test_stitch_count_validator():
     print("✓ Invalid operation (negative result) detected")
     
     # Test consistency validation
-    chart.stitch_counter.record_operation("test", consumed=0, produced=10)
+    # After cast_on_start(10), stitch_counter should already be at 10
+    # and match the actual count, so they should be consistent
     result = validator.validate_consistency(chart)
     assert result.is_valid == True, "Should be consistent"
     print("✓ Consistency validation works")
+    
+    # Test inconsistency - manually record an operation that doesn't match reality
+    chart.stitch_counter.record_operation("test", consumed=0, produced=10)
+    result = validator.validate_consistency(chart)
+    assert result.is_valid == False, "Should detect inconsistency"
+    print("✓ Inconsistency detection works")
     
     # Test inconsistency
     chart.stitch_counter.record_operation("test", consumed=0, produced=5)

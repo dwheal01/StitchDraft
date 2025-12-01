@@ -28,7 +28,6 @@ class PatternParser:
     
     def expand_pattern(self, pattern: str, available_stitches: int, side: str) -> ExpandedPattern:
         """Expand a pattern string into stitches."""
-        print(pattern, available_stitches, side)
         markers = []
         expanded = []
         consumed = 0
@@ -40,9 +39,6 @@ class PatternParser:
         # Split pattern into segments separated by 'sm'
         segments, noted_markers, markers_for_removal = self._split_by_sm(pattern, side)
         noted_markers.append(last_row_len)
-        print("Segments: ", segments)
-        print("Noted markers: ", noted_markers)
-        print("available stitches: ", available_stitches)
         for i, segment in enumerate(segments):
             num_increases = 0
             num_decreases = 0
@@ -149,7 +145,6 @@ class PatternParser:
         if current_segment:
             segments.append(",".join(current_segment))
         
-        # print(markers_for_removal)
         return segments, noted_markers, markers_for_removal
      
     def split_tokens(self, pattern: str) -> List[str]:

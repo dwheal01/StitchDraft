@@ -33,11 +33,7 @@ class PositionCalculator:
       """Calculate positions based on previous row."""
       anchors = []
       prev_i = 0
-      print("row: ", row)
-    #   print("previous_stitches: ", previous_stitches)
-      print("side: ", side)
       for i, stitch in enumerate(row):
-        #  print("stitch: ", row[len(row)-1-i])
          
 
          if self._is_regular_stitch(stitch):
@@ -59,18 +55,11 @@ class PositionCalculator:
                 self._add_increase_decrease_links(stitch, len(previous_stitches)-1-prev_i, i, previous_stitches, link_manager, node_counter)
                 if stitch == "dec":
                     prev_i += 2
-    #   print("i: ", i)
-    #   print("number of previous stitches: ", len(previous_stitches))
-    #   unconsumed stitches
+                    
       if side == "RS":
         unconsumed_stitches = previous_stitches[prev_i:]
       else:
         unconsumed_stitches = previous_stitches[:len(previous_stitches)-prev_i]
-    #   unconsumed_stitches = previous_stitches[:len(previous_stitches)-prev_i]
-      print("length of previous stitches: ", len(previous_stitches))
-      print("prev_i: ", prev_i)
-      print("previous stitches: ", previous_stitches)
-      print("anchors: ", anchors)
       return self._center_anchors(anchors, row), unconsumed_stitches
 
     def _add_increase_decrease_links(self, stitch: str, prev_i: int, current_i: int, previous_stitches: List[Node], link_manager, node_counter: int) -> None:
@@ -106,5 +95,4 @@ class PositionCalculator:
             return anchors
         
         center_of_anchors = sum(anchors) / len(anchors)
-        print("center of anchors: ", center_of_anchors)
         return [center_of_anchors + x for x in self.centered_array(len(row))]
