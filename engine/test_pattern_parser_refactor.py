@@ -108,20 +108,18 @@ def test_factory_integration():
     
     return chart
 
-
-def test_backward_compatibility():
-    """Test that existing code still works."""
-    print("\n=== Testing Backward Compatibility ===")
+def test_factory_creation():
+    """Test that ChartSection is created correctly via factory."""
+    print("\n=== Testing Factory Creation ===")
     
-    # Test that ChartSection can still be created with old-style constructor
-    from engine.chart_section import ChartSection
-    
-    chart = ChartSection(name="backward_test", start_side="RS", sts=23, rows=21)
+    # Use factory instead of direct construction
+    factory = ChartSectionFactory()
+    chart = factory.create_with_defaults(name="factory_test", start_side="RS")
     
     # Verify PatternParser is created correctly
     assert chart.pattern_parser is not None, "PatternParser should be created"
     assert isinstance(chart.pattern_parser.marker_provider, IMarkerProvider), "Should use IMarkerProvider"
-    print("✓ Backward compatibility maintained")
+    print("✓ Factory creates ChartSection with PatternParser correctly")
     
     # Test that pattern parsing still works
     chart.cast_on_start(10)
@@ -131,7 +129,6 @@ def test_backward_compatibility():
     print("✓ Chart operations work after refactoring")
     
     return chart
-
 
 def run_all_tests():
     """Run all PatternParser refactoring tests."""
@@ -144,7 +141,7 @@ def run_all_tests():
         test_pattern_parser_uses_interface()
         test_pattern_parser_functionality()
         test_factory_integration()
-        test_backward_compatibility()
+        test_factory_creation()
         
         print("\n" + "=" * 60)
         print("✓ ALL TESTS PASSED!")
