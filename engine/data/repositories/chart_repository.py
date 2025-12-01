@@ -5,6 +5,7 @@ from pathlib import Path
 from engine.domain.interfaces.ichart_repository import IChartRepository
 from engine.data.models.chart_data import ChartData
 from engine.data.repositories.chart_data_serializer import ChartDataSerializer
+from engine.presentation.mappers.view_model_mapper import ViewModelMapper
 # Note: ChartDataValidator will be added later
 # from engine.data.repositories.chart_data_validator import ChartDataValidator
 
@@ -23,6 +24,7 @@ class ChartRepository(IChartRepository):
         self.data_path = Path(data_path)
         self.validator = validator
         self.serializer = ChartDataSerializer()
+        self.view_model_mapper = ViewModelMapper()
         
         # Ensure data directory exists
         self.data_path.mkdir(parents=True, exist_ok=True)
@@ -104,23 +106,23 @@ class ChartRepository(IChartRepository):
     def save_charts(self, charts: List[ChartData]) -> None:
         """
         Save multiple charts to individual files and a master file.
+        Uses ViewModels for the master charts.json file.
         
         Args:
             charts: List of ChartData objects to save
         """
-        # Save individual chart files
+        # Save individual chart files (using raw ChartData)
         for chart_data in charts:
             self.save_chart(chart_data)
         
-        # Save master charts file
+        # Convert to ViewModels for the master charts.json file
+        view_models = [self.view_model_mapper.to_view_model(chart) for chart in charts]
+        
+        # Save master charts file with ViewModels
         master_data = {
             "charts": [
-                {
-                    "name": chart.name,
-                    "nodes": [self.serializer._node_to_dict(node) for node in chart.nodes],
-                    "links": [self.serializer._link_to_dict(link) for link in chart.links]
-                }
-                for chart in charts
+                self.view_model_mapper.view_model_to_dict(view_model)
+                for view_model in view_models
             ]
         }
         

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Any
 from engine.data.models.chart_data import ChartData
 from engine.data.models.node import Node
 from engine.data.models.link import Link
@@ -37,3 +37,34 @@ class ViewModelMapper:
             source_id=link.source,
             target_id=link.target
         )
+    
+    def view_model_to_dict(self, view_model: ChartViewModel) -> Dict[str, Any]:
+        """
+        Convert ChartViewModel to dictionary for JSON serialization.
+        
+        Args:
+            view_model: ChartViewModel to convert
+            
+        Returns:
+            Dictionary representation suitable for JSON
+        """
+        return {
+            "name": view_model.name,
+            "nodes": [
+                {
+                    "id": node.id,
+                    "type": node.type,
+                    "x": node.x,
+                    "y": node.y,
+                    "row": node.row
+                }
+                for node in view_model.nodes
+            ],
+            "links": [
+                {
+                    "source": link.source_id,
+                    "target": link.target_id
+                }
+                for link in view_model.links
+            ]
+        }

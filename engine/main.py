@@ -20,6 +20,8 @@ if __name__ == "__main__":
     
        # Replace ONLY the creation line - keep everything else the same
       raglan = chart_service.create_chart(name="raglan", start_side="RS", sts=23, rows=21)
+      # Attach observer right after creation
+      chart_service.attach_visualization_observer(raglan)
       raglan.cast_on_start(122)
       raglan.repeat_rounds(["repeat(k1, p1)"], 15)
       raglan.repeat_rounds(["repeat(k1)"], 30)
@@ -68,6 +70,8 @@ if __name__ == "__main__":
       raglan.add_row("repeat(p1)")
     
       raglan_back = chart_service.create_chart(name="raglan_back", start_side="RS", sts=23, rows=21)
+      # Attach observer
+      chart_service.attach_visualization_observer(raglan_back)
       raglan_back.cast_on_start(122)
       raglan_back.repeat_rounds(["repeat(k1, p1)"], 15)
       raglan_back.repeat_rounds(["repeat(k1)"], 30)
@@ -80,6 +84,8 @@ if __name__ == "__main__":
       , 31)
       
       sleeve = chart_service.create_chart(name="sleeve", start_side="RS", sts=23, rows=21)
+      # Attach observer
+      chart_service.attach_visualization_observer(sleeve)
       sleeve.cast_on_start(60)
       sleeve.repeat_rounds(["repeat(k1, p1)"], 15)
       sleeve.add_round(["repeat(k2, inc)"]).cast_on(1)
@@ -92,6 +98,11 @@ if __name__ == "__main__":
       chart_sections.append(raglan_back)
       chart_sections.append(raglan)
       chart_sections.append(sleeve)
+      
+      Attach observers to all charts before saving
+      for chart in chart_sections:
+          chart_service.attach_visualization_observer(chart)
+      
       chart_service.save_charts(chart_sections)
       
       print(f"Data written to charts.json with {len(chart_sections)} chart(s):")
