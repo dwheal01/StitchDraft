@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from engine.domain.interfaces.ichart_repository import IChartRepository
 from engine.domain.factories.chart_section_factory import ChartSectionFactory
 from engine.data.models.chart_config import ChartConfig
@@ -10,8 +10,10 @@ from engine.chart_section import ChartSection
 from engine.data.repositories.chart_data_serializer import ChartDataSerializer
 from engine.domain.models.pattern_processor import PatternProcessor
 from engine.domain.models.validation.validation_handler import ValidationHandler
-from engine.domain.interfaces.ichart_observer import IChartObserver
 from engine.presentation.observers.chart_visualization_observer import ChartVisualizationObserver
+
+if TYPE_CHECKING:
+    from engine.chart_section import ChartSection
 
 
 class ChartService:
@@ -237,35 +239,3 @@ class ChartService:
         else:
             # Fallback: return valid result if no chain
             return ValidationResult(is_valid=True, errors=[])
-    
-    def create_visualization_observer(
-        self,
-        view=None
-    ) -> ChartVisualizationObserver:
-        """
-        Create a ChartVisualizationObserver instance.
-        
-        Args:
-            view: Optional view object (for JavaScript integration)
-            
-        Returns:
-            ChartVisualizationObserver instance
-        """
-        return ChartVisualizationObserver(view=view)
-    
-    def attach_visualization_observer(
-        self,
-        chart: ChartSection,
-        observer: Optional[ChartVisualizationObserver] = None
-    ) -> None:
-        """
-        Attach a visualization observer to a chart.
-        If observer is not provided, creates a new one.
-        
-        Args:
-            chart: ChartSection to attach observer to
-            observer: Optional ChartVisualizationObserver (creates new one if None)
-        """
-        if observer is None:
-            observer = self.create_visualization_observer()
-        chart.attach(observer)

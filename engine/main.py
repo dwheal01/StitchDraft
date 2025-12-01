@@ -11,11 +11,18 @@ from engine.data.repositories.chart_repository import ChartRepository
 # Keep old import temporarily for comparison
 from chart_section import ChartSection
 import json
+from typing import Optional, TYPE_CHECKING
+from engine.presentation.services.chart_visualization_service import ChartVisualizationService
+
+if TYPE_CHECKING:
+    from engine.chart_section import ChartSection
+
 
 if __name__ == "__main__":
       # Initialize service layer
       repository = ChartRepository(data_path="engine")
-      chart_service = ChartService(chart_repository=repository)    
+      chart_service = ChartService(chart_repository=repository)
+      visualization_service = ChartVisualizationService(chart_service)
       chart_sections = []
     
        # Replace ONLY the creation line - keep everything else the same
@@ -99,9 +106,9 @@ if __name__ == "__main__":
       chart_sections.append(raglan)
       chart_sections.append(sleeve)
       
-      Attach observers to all charts before saving
+      # Attach observers to all charts before saving (using visualization service)
       for chart in chart_sections:
-          chart_service.attach_visualization_observer(chart)
+          visualization_service.attach_visualization_observer(chart)
       
       chart_service.save_charts(chart_sections)
       

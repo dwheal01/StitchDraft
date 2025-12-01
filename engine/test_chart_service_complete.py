@@ -16,6 +16,7 @@ from engine.data.models.expanded_pattern import ExpandedPattern
 from engine.domain.models.pattern_processor import PatternProcessor
 from engine.domain.models.validation.validation_handler import ValidationHandler
 from engine.presentation.observers.chart_visualization_observer import ChartVisualizationObserver
+from engine.presentation.services.chart_visualization_service import ChartVisualizationService
 
 
 def test_auto_create_pattern_processor():
@@ -117,9 +118,10 @@ def test_create_visualization_observer():
     
     repository = ChartRepository(data_path="engine")
     service = ChartService(chart_repository=repository)
+    vis_service = ChartVisualizationService(service)
     
     # Create observer
-    observer = service.create_visualization_observer()
+    observer = vis_service.create_visualization_observer()
     
     assert observer is not None, "Observer should be created"
     assert isinstance(observer, ChartVisualizationObserver), "Should be ChartVisualizationObserver instance"
@@ -129,7 +131,7 @@ def test_create_visualization_observer():
     assert observer.mapper is not None, "Observer should have ViewModelMapper"
     print("✓ Observer has ViewModelMapper")
     
-    return service, observer
+    return service, vis_service
 
 
 def test_attach_visualization_observer():
@@ -138,11 +140,12 @@ def test_attach_visualization_observer():
     
     repository = ChartRepository(data_path="engine")
     service = ChartService(chart_repository=repository)
+    vis_service = ChartVisualizationService(service)
     
     chart = service.create_chart(name="observer_test", start_side="RS", sts=23, rows=21)
     
     # Test attaching with auto-creation
-    service.attach_visualization_observer(chart)
+    vis_service.attach_visualization_observer(chart)
     
     assert len(chart.observers) == 1, "Chart should have one observer"
     assert isinstance(chart.observers[0], ChartVisualizationObserver), "Observer should be ChartVisualizationObserver"
@@ -150,14 +153,14 @@ def test_attach_visualization_observer():
     
     # Test attaching with provided observer
     chart2 = service.create_chart(name="observer_test2", start_side="RS", sts=23, rows=21)
-    observer = service.create_visualization_observer()
-    service.attach_visualization_observer(chart2, observer)
+    observer = vis_service.create_visualization_observer()
+    vis_service.attach_visualization_observer(chart2, observer)
     
     assert len(chart2.observers) == 1, "Chart should have one observer"
     assert chart2.observers[0] is observer, "Should be the provided observer"
     print("✓ Observer attached with provided instance")
     
-    return service
+    return service, vis_service
 
 
 def test_process_pattern_integration():
@@ -188,13 +191,14 @@ def test_full_workflow():
     
     repository = ChartRepository(data_path="engine")
     service = ChartService(chart_repository=repository)
+    vis_service = ChartVisualizationService(service)
     
     # Create chart
     chart = service.create_chart(name="workflow_test", start_side="RS", sts=23, rows=21)
     chart.cast_on_start(10)
     
     # Attach observer
-    service.attach_visualization_observer(chart)
+    vis_service.attach_visualization_observer(chart)
     assert len(chart.observers) == 1, "Observer should be attached"
     print("✓ Chart created with observer")
     

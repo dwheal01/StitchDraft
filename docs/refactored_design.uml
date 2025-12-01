@@ -86,6 +86,14 @@ package "Presentation Layer" {
         + onChartStateChanged(chart: ChartSection, event: ChartStateEvent): void
         - updateVisualization(chart: ChartSection): void
     }
+
+    class ChartVisualizationService {
+        - chartService: ChartService
+        --
+        + createVisualizationObserver(view: Any): ChartVisualizationObserver
+        + attachVisualizationObserver(chart: ChartSection, observer: Optional[ChartVisualizationObserver]): void
+        + getChartViewModel(chart: ChartSection): ChartViewModel
+    }
 }
 
 package "Domain Layer" {
@@ -108,13 +116,10 @@ package "Domain Layer" {
         + exportChart(chart: ChartSection): ChartData
         + joinCharts(chart1: ChartSection, chart2: ChartSection): ChartSection
         + validateChart(chart: ChartSection, request: ValidationRequest): ValidationResult
-        + attachVisualizationObserver(chart: ChartSection, observer: Optional[ChartVisualizationObserver]): void
         + saveChart(chart: ChartSection): void
         + loadChart(name: str): ChartData
         + loadAllCharts(): List[ChartData]
         + saveCharts(charts: List[ChartSection]): void
-        + createVisualizationObserver(view: Any): ChartVisualizationObserver
-        + getChartViewModel(chart: ChartSection): ChartViewModel
     }
     
     class PatternProcessor {
@@ -506,6 +511,7 @@ BodyFormTemplateRenderer --> ChartViewModel : uses
 ChartViewModel *-- NodeViewModel : contains
 ChartViewModel *-- LinkViewModel : contains
 UIController --> VisualizationView : controls
+ChartVisualizationService --> ChartService : uses
 
 ' ============================================
 ' DOMAIN LAYER - OBSERVER PATTERN
