@@ -24,8 +24,8 @@ class AddRowOperation(IChartOperation):
             side = "WS" if chart.row_manager.is_wrong_side(is_round) else "RS"
             expanded = chart.pattern_parser.expand_pattern(
                 pattern, 
-                chart.node_manager.last_row_produced, 
-                chart.row_manager.last_row_side
+                chart.node_manager.get_last_row_produced(), 
+                chart.row_manager.get_last_row_side()
             )
             new_row = expanded.stitches
             consumed = expanded.consumed
@@ -37,16 +37,18 @@ class AddRowOperation(IChartOperation):
                 chart._notify_marker_placed(side, marker)
         
         new_row = chart.row_manager.reverse_row_if_needed(new_row, is_round)
-        old_count = chart.node_manager.last_row_produced
+        old_count = chart.node_manager.get_last_row_produced()
         chart.add_nodes(new_row, side, is_round)
         
-        chart.node_manager.set_last_row_produced(produced + (chart.node_manager.last_row_produced - consumed))
+        # Use update method for controlled state update
+        chart.node_manager.update_last_row_produced(consumed, produced)
+        new_count = chart.node_manager.get_last_row_produced()
         
         # Record operation in stitch counter
         chart.stitch_counter.record_operation("add_row", consumed, produced)
         
-        if old_count != chart.node_manager.last_row_produced:
-            chart._notify_stitch_count_changed(old_count, chart.node_manager.last_row_produced)
+        if old_count != new_count:
+            chart._notify_stitch_count_changed(old_count, new_count)
         
         return chart
     

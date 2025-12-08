@@ -1,6 +1,9 @@
 import json
-from typing import List, Dict, Any
-from engine.chart_section import ChartSection
+from typing import List, Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from engine.chart_section import ChartSection
+
 from engine.data.models.chart_data import ChartData
 from engine.data.models.node import Node
 from engine.data.models.link import Link
@@ -9,7 +12,7 @@ from engine.data.models.link import Link
 class ChartDataSerializer:
     """Serializes ChartSection to ChartData with deterministic ordering."""
     
-    def serialize(self, chart: ChartSection) -> str:
+    def serialize(self, chart: 'ChartSection') -> str:
         """
         Serialize a ChartSection to JSON string.
         
@@ -26,7 +29,7 @@ class ChartDataSerializer:
             "links": [self._link_to_dict(link) for link in chart_data.links]
         }, indent=2)
     
-    def serialize_deterministic(self, chart: ChartSection) -> str:
+    def serialize_deterministic(self, chart: 'ChartSection') -> str:
         """
         Serialize a ChartSection to JSON string with deterministic ordering.
         
@@ -46,7 +49,7 @@ class ChartDataSerializer:
             "links": [self._link_to_dict(link) for link in ordered_links]
         }, indent=2)
     
-    def to_chart_data(self, chart: ChartSection) -> ChartData:
+    def to_chart_data(self, chart: 'ChartSection') -> ChartData:
         """
         Convert ChartSection to ChartData.
         
@@ -56,9 +59,9 @@ class ChartDataSerializer:
         Returns:
             ChartData object
         """
-        # Nodes and links are already Node/Link objects, just convert
-        nodes = list(chart.node_manager.nodes)  # Already List[Node]
-        links = list(chart.link_manager.links)   # Already List[Link]
+        # Nodes and links are already Node/Link objects, use accessor methods
+        nodes = chart.node_manager.get_nodes()  # Returns defensive copy
+        links = chart.link_manager.get_links()   # Returns defensive copy
         
         return ChartData(
             name=chart.name,

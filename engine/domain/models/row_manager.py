@@ -10,6 +10,32 @@ class RowManager:
 
     def set_last_row_side(self, side: str) -> None:
         self.last_row_side = side
+    
+    def get_rows(self) -> List[List[str]]:
+        """Get all rows (returns defensive copy)."""
+        return [list(row) for row in self.rows]
+    
+    def get_last_row_side(self) -> str:
+        """Get the last row side."""
+        return self.last_row_side
+    
+    def get_start_side(self) -> str:
+        """Get the starting side."""
+        return self.start_side
+    
+    def get_row_count(self) -> int:
+        """Get the number of rows."""
+        return len(self.rows)
+    
+    def get_row(self, index: int) -> List[str]:
+        """Get a specific row by index (returns defensive copy)."""
+        self._validate_row_index(index)
+        return list(self.rows[index])
+    
+    def update_row(self, index: int, row: List[str]) -> None:
+        """Update a specific row by index."""
+        self._validate_row_index(index)
+        self.rows[index] = list(row)
         
     def add_round(self, row: List[str]) -> None:
         """Add a round to the collection."""

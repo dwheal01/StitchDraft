@@ -44,5 +44,24 @@ class MarkerManager(IMarkerProvider):
           self.markers_rs.remove(self.markers_rs[len(self.markers_rs)-index-1])
           
     def get_markers(self, side: str) -> List[int]:
-        """Get the markers for the collection."""
-        return self.markers_rs if side == "RS" else self.markers_ws
+        """Get the markers for the collection (returns defensive copy)."""
+        markers = self.markers_rs if side == "RS" else self.markers_ws
+        return list(markers)
+    
+    def get_markers_rs(self) -> List[int]:
+        """Get RS markers (returns defensive copy)."""
+        return list(self.markers_rs)
+    
+    def get_markers_ws(self) -> List[int]:
+        """Get WS markers (returns defensive copy)."""
+        return list(self.markers_ws)
+    
+    def add_marker_to_rs(self, position: int) -> None:
+        """Add a marker to RS markers list."""
+        self.markers_rs.append(position)
+        self.markers_rs.sort()
+    
+    def add_marker_to_ws(self, position: int) -> None:
+        """Add a marker to WS markers list."""
+        self.markers_ws.append(position)
+        self.markers_ws.sort()

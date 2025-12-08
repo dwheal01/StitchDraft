@@ -157,7 +157,8 @@ class ChartSection:
         
     def place_marker(self, side: str, position: int) -> None:
         """Place a marker at the specified needle position."""
-        self.marker_manager.add_marker(side, position, len(self.node_manager.last_row_stitches))
+        last_row_stitches = self.node_manager.get_last_row_stitches()
+        self.marker_manager.add_marker(side, position, len(last_row_stitches))
         self._notify_marker_placed(side, position)
     
     def repeat_rows(self, row_patterns: List[str], count: int) -> None:
@@ -174,18 +175,18 @@ class ChartSection:
     
     @property
     def nodes(self):
-        """Get nodes from the node manager."""
-        return self.node_manager.nodes
+        """Get nodes from the node manager (returns defensive copy)."""
+        return self.node_manager.get_nodes()
     
     @property
     def links(self):
-        """Get links from the link manager."""
-        return self.link_manager.links
+        """Get links from the link manager (returns defensive copy)."""
+        return self.link_manager.get_links()
     
     @property
     def rows(self):
-        """Get rows from the row manager."""
-        return self.row_manager.rows
+        """Get rows from the row manager (returns defensive copy)."""
+        return self.row_manager.get_rows()
     
     # Observer notification methods
     def _notify_stitch_count_changed(self, old_count: int, new_count: int) -> None:

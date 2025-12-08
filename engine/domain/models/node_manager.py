@@ -16,7 +16,48 @@ class NodeManager:
         self.last_row_unconsumed_stitches = unconsumed_stitches
     
     def get_stitches_on_hold(self) -> List[Node]:
-        return self.stitches_on_hold
+        """Get stitches on hold (returns defensive copy)."""
+        return list(self.stitches_on_hold)
+    
+    def get_nodes(self) -> List[Node]:
+        """Get all nodes (returns defensive copy)."""
+        return list(self.nodes)
+    
+    def get_last_row_stitches(self) -> List[Node]:
+        """Get last row stitches (returns defensive copy)."""
+        return list(self.last_row_stitches)
+    
+    def get_last_row_unconsumed_stitches(self) -> List[Node]:
+        """Get last row unconsumed stitches (returns defensive copy)."""
+        return list(self.last_row_unconsumed_stitches)
+    
+    def get_last_row_produced(self) -> int:
+        """Get the number of stitches produced in the last row."""
+        return self.last_row_produced
+    
+    def get_node_counter(self) -> int:
+        """Get the current node counter value."""
+        return self.node_counter
+    
+    def set_last_row_stitches(self, stitches: List[Node]) -> None:
+        """Set the last row stitches."""
+        self.last_row_stitches = list(stitches)
+    
+    def append_to_last_row_stitches(self, stitches: List[Node]) -> None:
+        """Append stitches to the last row stitches."""
+        self.last_row_stitches.extend(stitches)
+    
+    def clear_last_row_stitches(self) -> None:
+        """Clear the last row stitches."""
+        self.last_row_stitches = []
+    
+    def extend_nodes(self, nodes: List[Node]) -> None:
+        """Extend the nodes list with new nodes."""
+        self.nodes.extend(nodes)
+    
+    def increment_node_counter(self, amount: int = 1) -> None:
+        """Increment the node counter by the specified amount."""
+        self.node_counter += amount
     
     def set_stitches_on_hold(self) -> int:
         self.stitches_on_hold = self.last_row_unconsumed_stitches
@@ -29,6 +70,7 @@ class NodeManager:
         return len(self.stitches_on_hold)
     
     def places_stitches_on_needle(self, stitches_on_hold: List[Node]) -> None:
+        """Place stitches on needle and update counts."""
         self.last_row_stitches.extend(stitches_on_hold)
         # clear stitches on hold
         # loop through stitches on hold and count all non "bo" stitches
@@ -37,6 +79,16 @@ class NodeManager:
             if stitch.type != "bo":
                 num_stitches_on_needle += 1
         self.last_row_produced = num_stitches_on_needle
+    
+    def update_last_row_produced(self, consumed: int, produced: int) -> int:
+        """Update last row produced count and return old count."""
+        old_count = self.last_row_produced
+        self.last_row_produced = produced + (self.last_row_produced - consumed)
+        return old_count
+    
+    def replace_nodes(self, nodes: List[Node]) -> None:
+        """Replace all nodes with new list."""
+        self.nodes = list(nodes)
 
     def set_last_row_produced(self, produced: int) -> None:
         self.last_row_produced = produced

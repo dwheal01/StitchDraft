@@ -20,8 +20,9 @@ class JoinOperation(IChartOperation):
         offset = new_fx - first_stitch_other.fx
         
         # Offset all nodes in other chart (create new Node objects since dataclass is immutable)
+        other_nodes = other.node_manager.get_nodes()
         offset_nodes = []
-        for stitch in other.node_manager.nodes:
+        for stitch in other_nodes:
             if stitch.type != "strand":
                 # Create new node with offset fx
                 offset_nodes.append(replace(stitch, fx=stitch.fx + offset))
@@ -29,28 +30,33 @@ class JoinOperation(IChartOperation):
                 # Keep strand nodes as-is
                 offset_nodes.append(stitch)
         
-        # Replace nodes in other chart
-        other.node_manager.nodes = offset_nodes
+        # Replace nodes in other chart using mutator method
+        other.node_manager.replace_nodes(offset_nodes)
         
         # Also offset last_row_stitches
+        other_last_row = other.node_manager.get_last_row_stitches()
         offset_last_row = []
-        for stitch in other.node_manager.last_row_stitches:
+        for stitch in other_last_row:
             if stitch.type != "strand":
                 offset_last_row.append(replace(stitch, fx=stitch.fx + offset))
             else:
                 offset_last_row.append(stitch)
-        other.node_manager.last_row_stitches = offset_last_row
+        other.node_manager.set_last_row_stitches(offset_last_row)
         
-        # Merge markers
-        for marker in other.marker_manager.markers_rs:
-            chart.marker_manager.markers_rs.append(marker + len(chart.node_manager.last_row_stitches))
-        for marker in other.marker_manager.markers_ws:
-            chart.marker_manager.markers_ws.append(marker + len(chart.node_manager.last_row_stitches))
+        # Merge markers using accessor methods
+        chart_last_row_count = len(chart.node_manager.get_last_row_stitches())
+        other_markers_rs = other.marker_manager.get_markers_rs()
+        other_markers_ws = other.marker_manager.get_markers_ws()
         
-        # Merge nodes
-        chart.node_manager.nodes.extend(other.node_manager.nodes)
-        chart.node_manager.node_counter += other.node_manager.node_counter
-        chart.node_manager.last_row_stitches.extend(other.node_manager.last_row_stitches)
+        for marker in other_markers_rs:
+            chart.marker_manager.add_marker_to_rs(marker + chart_last_row_count)
+        for marker in other_markers_ws:
+            chart.marker_manager.add_marker_to_ws(marker + chart_last_row_count)
+        
+        # Merge nodes using mutator methods
+        chart.node_manager.extend_nodes(offset_nodes)
+        chart.node_manager.increment_node_counter(other.node_manager.get_node_counter())
+        chart.node_manager.append_to_last_row_stitches(offset_last_row)
         
         return chart
     

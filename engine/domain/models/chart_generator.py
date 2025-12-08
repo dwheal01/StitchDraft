@@ -28,7 +28,7 @@ class ChartGenerator:
             context.side, 
             context.previous_stitches, 
             chart.link_manager, 
-            chart.node_manager.node_counter
+            chart.node_manager.get_node_counter()
         )
         
         for i, stitch in enumerate(row):
@@ -70,10 +70,10 @@ class ChartGenerator:
         """Calculate positions for stitches in a row."""
         anchors, _ = chart.position_calculator.calculate_anchors(
             row,
-            chart.row_manager.last_row_side,
+            chart.row_manager.get_last_row_side(),
             previous_stitches,
             chart.link_manager,
-            chart.node_manager.node_counter
+            chart.node_manager.get_node_counter()
         )
         return anchors
     
@@ -89,7 +89,7 @@ class ChartGenerator:
         from engine.chart_section import ChartSection
         
         # Get previous stitches
-        previous_stitches = chart.node_manager.last_row_stitches
+        previous_stitches = chart.node_manager.get_last_row_stitches()
         
         # Calculate anchors
         anchors, unconsumed_stitches = chart.position_calculator.calculate_anchors(
@@ -97,7 +97,7 @@ class ChartGenerator:
             side, 
             previous_stitches, 
             chart.link_manager, 
-            chart.node_manager.node_counter
+            chart.node_manager.get_node_counter()
         )
         
         # Create context
@@ -109,7 +109,8 @@ class ChartGenerator:
         )
         
         # Generate nodes
-        chart.node_manager.last_row_stitches = []
+        chart.node_manager.clear_last_row_stitches()
+        new_nodes = []
         for i, stitch in enumerate(row):
             # Flip stitch type for wrong side
             actual_stitch = stitch
@@ -121,22 +122,24 @@ class ChartGenerator:
             
             fy = chart.position_calculator.BASE_Y_OFFSET + (row_num - 1) * chart.position_calculator.ROW_HEIGHT
             node = chart.node_manager.create_stitch_node(actual_stitch, anchors[i], fy, row_num)
-            chart.node_manager.last_row_stitches.append(node)
+            new_nodes.append(node)
             
             # Add horizontal links between stitches
             if i != len(row) - 1:
                 chart.node_manager.create_strand_node(row_num)
                 self.add_horizontal_links(chart, i)
         
-        # Add unconsumed stitches
-        chart.node_manager.last_row_stitches.extend(unconsumed_stitches)
+        # Set new nodes and add unconsumed stitches
+        chart.node_manager.set_last_row_stitches(new_nodes)
+        chart.node_manager.append_to_last_row_stitches(unconsumed_stitches)
         chart.node_manager.set_last_row_unconsumed_stitches(unconsumed_stitches)
     
     def add_horizontal_links(self, chart: 'ChartSection', index: int) -> None:
         """Add horizontal links between stitches."""
-        current_id = f"{chart.node_manager.node_counter - 1}"
-        strand_id = f"{chart.node_manager.node_counter - 1}s"
-        next_id = f"{chart.node_manager.node_counter}"
+        node_counter = chart.node_manager.get_node_counter()
+        current_id = f"{node_counter - 1}"
+        strand_id = f"{node_counter - 1}s"
+        next_id = f"{node_counter}"
         
         chart.link_manager.add_horizontal_link(current_id, strand_id)
         chart.link_manager.add_horizontal_link(strand_id, next_id)

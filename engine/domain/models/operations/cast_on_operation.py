@@ -13,7 +13,7 @@ class CastOnOperation(IChartOperation):
         if count <= 0:
             raise ValueError("Count must be positive")
         
-        old_count = chart.node_manager.last_row_produced
+        old_count = chart.node_manager.get_last_row_produced()
         if chart.start_side == "RS":
             chart.add_nodes(["k"] * count, "WS")
         else:

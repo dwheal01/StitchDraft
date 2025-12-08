@@ -112,11 +112,12 @@ class ChartService:
         # Create PatternContext from chart state
         from engine.data.models.pattern_context import PatternContext
         
+        last_row_side = chart.row_manager.get_last_row_side()
         context = PatternContext(
             available_stitches=chart.get_current_num_of_stitches(),
-            side=chart.row_manager.last_row_side,
-            markers=chart.marker_manager.get_markers(chart.row_manager.last_row_side),
-            last_row_side=chart.row_manager.last_row_side,
+            side=last_row_side,
+            markers=chart.marker_manager.get_markers(last_row_side),
+            last_row_side=last_row_side,
             is_round=False  # Could be determined from chart state if needed
         )
         return self.pattern_processor.validate_and_expand(pattern, context)
