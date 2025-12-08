@@ -150,8 +150,8 @@ class ChartDataSerializer:
         
         return json.dumps({
             "name": chart_data.name,
-            "nodes": [self._node_to_dict(node) for node in ordered_nodes],
-            "links": [self._link_to_dict(link) for link in ordered_links]
+            "nodes": [self._node_to_dict(node) for node in ordered_nodes]
+            # Links removed - not used for display
         }, indent=2)
     
     def _convert_single_node(self, node_dict: Dict[str, Any]) -> Node:

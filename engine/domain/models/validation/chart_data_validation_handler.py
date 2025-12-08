@@ -24,6 +24,10 @@ class ChartDataValidationHandler(ValidationHandler):
         if request.chart is None:
             return ValidationResult(is_valid=True, errors=[])
         
+        # Clean up any invalid links before validation
+        node_ids = {node.id for node in request.chart.nodes}
+        removed_count = request.chart.link_manager.remove_invalid_links(node_ids)
+        
         # Convert chart to ChartData for validation
         from engine.data.models.chart_data import ChartData
         from engine.data.models.node import Node

@@ -108,6 +108,10 @@ class NodeManager:
     
     def create_strand_node(self, row: int) -> Node:
         """Create a strand node."""
+        # Ensure we don't create a strand node with negative ID
+        if self.node_counter == 0:
+            raise ValueError("Cannot create strand node: no stitch nodes exist yet")
+        
         node = Node(
             id=f"{self.node_counter - 1}s",
             type="strand",

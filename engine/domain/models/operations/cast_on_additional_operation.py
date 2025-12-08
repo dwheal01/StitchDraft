@@ -29,29 +29,47 @@ class CastOnAdditionalOperation(IChartOperation):
         old_count = chart.node_manager.get_last_row_produced()
         
         # Create new cast-on stitches positioned to the right
-        # We need to append incrementally to maintain correct state for linking
+        # Create all nodes first, then create links (similar to create_nodes_for_row)
+        new_nodes = []
+        strand_nodes = []
+        initial_count = len(last_row_stitches)
+        
         for i in range(count):
             if side == "RS":
                 new_fx = last_fx + (i + 1) * spacing
             else:
                 new_fx = last_fx - (i + 1) * spacing
             node = chart.node_manager.create_stitch_node("k", new_fx, current_fy, current_row_number)
+            new_nodes.append(node)
             chart.node_manager.append_to_last_row_stitches([node])
             chart._notify_node_added(node)
             
-            if i == 0:
-                # Get updated last_row_stitches to find the second-to-last
-                updated_stitches = chart.node_manager.get_last_row_stitches()
-                if len(updated_stitches) >= 2:
-                    last_existing_id = updated_stitches[-2].id
-                    first_new_id = updated_stitches[-1].id
-                    chart.link_manager.add_horizontal_link(connecting_id, first_new_id)
-                    chart._notify_link_added({"source": connecting_id, "target": first_new_id})
-            
+            # Create strand node between stitches (except last)
             if i < count - 1:
-                chart.node_manager.create_strand_node(current_row_number)
-                updated_stitches = chart.node_manager.get_last_row_stitches()
-                chart.chart_generator.add_horizontal_links(chart, len(updated_stitches) - 2)
+                strand_node = chart.node_manager.create_strand_node(current_row_number)
+                strand_nodes.append((node, strand_node))
+        
+        # Create link from last existing stitch to first new stitch
+        if new_nodes:
+            first_new_id = new_nodes[0].id
+            chart.link_manager.add_horizontal_link(connecting_id, first_new_id)
+            chart._notify_link_added({"source": connecting_id, "target": first_new_id})
+        
+        # Create horizontal links between new stitches after all nodes are created
+        for current_node, strand_node in strand_nodes:
+            current_node_id = current_node.id
+            strand_node_id = strand_node.id
+            # Find the next node (the one after current_node in new_nodes)
+            try:
+                current_index = new_nodes.index(current_node)
+                if current_index + 1 < len(new_nodes):
+                    next_node = new_nodes[current_index + 1]
+                    next_node_id = next_node.id
+                    chart.link_manager.add_horizontal_link(current_node_id, strand_node_id)
+                    chart.link_manager.add_horizontal_link(strand_node_id, next_node_id)
+            except ValueError:
+                # Current node not found in new_nodes (should not happen)
+                pass
         
         # Update the row representation
         updated_stitches = chart.node_manager.get_last_row_stitches()

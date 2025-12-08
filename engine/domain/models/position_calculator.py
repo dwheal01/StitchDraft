@@ -65,9 +65,10 @@ class PositionCalculator:
     def _add_increase_decrease_links(self, stitch: str, prev_i: int, current_i: int, previous_stitches: List[Node], link_manager, node_counter: int) -> None:
       """Add links for increase/decrease stitches."""
       if stitch == "inc":
-         # Link from previous strand to increase
-         prev_strand_id = f"{int(previous_stitches[prev_i].id)-1}s"
-         link_manager.add_vertical_link(prev_strand_id, f"{node_counter + current_i}")
+         # Link from the strand that follows the reference stitch (if it exists)
+         if prev_i < len(previous_stitches) - 1:
+             prev_strand_id = f"{previous_stitches[prev_i].id}s"
+             link_manager.add_vertical_link(prev_strand_id, f"{node_counter + current_i}")
       elif stitch == "dec":
          # Link from two previous stitches to decrease
          link_manager.add_vertical_link(previous_stitches[prev_i].id, f"{node_counter + current_i}")

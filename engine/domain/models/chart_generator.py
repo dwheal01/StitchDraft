@@ -111,6 +111,7 @@ class ChartGenerator:
         # Generate nodes
         chart.node_manager.clear_last_row_stitches()
         new_nodes = []
+        strand_nodes = []  # Track strand nodes to link later
         for i, stitch in enumerate(row):
             # Flip stitch type for wrong side
             actual_stitch = stitch
@@ -124,10 +125,31 @@ class ChartGenerator:
             node = chart.node_manager.create_stitch_node(actual_stitch, anchors[i], fy, row_num)
             new_nodes.append(node)
             
-            # Add horizontal links between stitches
+            # Create strand node between stitches (except last)
             if i != len(row) - 1:
-                chart.node_manager.create_strand_node(row_num)
-                self.add_horizontal_links(chart, i)
+                strand_node = chart.node_manager.create_strand_node(row_num)
+                strand_nodes.append((node, strand_node))
+        
+        # Create horizontal links after all nodes are created
+        for i, (current_node, strand_node) in enumerate(strand_nodes):
+            current_node_id = current_node.id
+            strand_node_id = strand_node.id
+            # The next stitch node is the one after current_node in new_nodes
+            if i + 1 >= len(new_nodes):
+                # Should not happen, but defensive check
+                continue
+            next_node = new_nodes[i + 1]
+            next_node_id = next_node.id
+            
+            # Validate node IDs before creating links
+            if not current_node_id or not strand_node_id or not next_node_id:
+                continue
+            if current_node_id.startswith('-') or next_node_id.startswith('-'):
+                # Skip links with negative node IDs (should not happen)
+                continue
+            
+            chart.link_manager.add_horizontal_link(current_node_id, strand_node_id)
+            chart.link_manager.add_horizontal_link(strand_node_id, next_node_id)
         
         # Set new nodes and add unconsumed stitches
         chart.node_manager.set_last_row_stitches(new_nodes)
@@ -135,11 +157,29 @@ class ChartGenerator:
         chart.node_manager.set_last_row_unconsumed_stitches(unconsumed_stitches)
     
     def add_horizontal_links(self, chart: 'ChartSection', index: int) -> None:
-        """Add horizontal links between stitches."""
-        node_counter = chart.node_manager.get_node_counter()
-        current_id = f"{node_counter - 1}"
-        strand_id = f"{node_counter - 1}s"
-        next_id = f"{node_counter}"
+        """Add horizontal links between stitches.
         
-        chart.link_manager.add_horizontal_link(current_id, strand_id)
-        chart.link_manager.add_horizontal_link(strand_id, next_id)
+        Args:
+            chart: The chart section
+            index: Index of the current stitch node in the last row (0-based)
+        """
+        last_row_stitches = chart.node_manager.get_last_row_stitches()
+        if index < 0 or index >= len(last_row_stitches) - 1:
+            # Can't create link if we don't have both current and next nodes
+            return
+        
+        current_node = last_row_stitches[index]
+        next_node = last_row_stitches[index + 1]
+        current_node_id = current_node.id
+        next_node_id = next_node.id
+        strand_node_id = f"{current_node_id}s"
+        
+        # Verify strand node exists
+        all_nodes = chart.node_manager.get_nodes()
+        strand_exists = any(node.id == strand_node_id for node in all_nodes)
+        if not strand_exists:
+            # Strand node should have been created, but if it doesn't exist, skip
+            return
+        
+        chart.link_manager.add_horizontal_link(current_node_id, strand_node_id)
+        chart.link_manager.add_horizontal_link(strand_node_id, next_node_id)

@@ -102,9 +102,18 @@ if __name__ == "__main__":
       sleeve.repeat_rounds(["k1, dec, repeat(k1), dec, k1",
                            "repeat(k1)"], 26)
       
+      join_demo1 = chart_service.create_chart(name="join_demo", start_side="RS", sts=23, rows=21)
+      join_demo1.cast_on_start(10)
+      join_demo1.repeat_rows(["k1, inc, repeat(k1), inc, k1", "repeat(k1)"], 3)
+      join_demo2 = chart_service.create_chart(name="join_demo2", start_side="RS", sts=23, rows=21)
+      join_demo2.cast_on_start(10)
+      join_demo2.repeat_rows(["k1, inc, repeat(k1), inc, k1", "repeat(k1)"], 3)
+      join_demo1.join(join_demo2)
+      
       chart_sections.append(raglan_back)
       chart_sections.append(raglan)
       chart_sections.append(sleeve)
+      chart_sections.append(join_demo1)
             
       chart_service.save_charts(chart_sections)
       

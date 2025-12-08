@@ -67,4 +67,5 @@ class ViewModelMapper:
                 }
                 for link in view_model.links
             ]
+            # Links removed - not used for display
         }
