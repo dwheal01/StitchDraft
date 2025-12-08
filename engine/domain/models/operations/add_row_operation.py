@@ -36,6 +36,35 @@ class AddRowOperation(IChartOperation):
                 chart.marker_manager.add_marker(side, marker, len(new_row))
                 chart._notify_marker_placed(side, marker)
         
+        # Validate stitch count after pattern expansion (only stitch counts, not pattern syntax)
+        # Pattern syntax is validated by the pattern parser during expansion
+        if chart.validation_chain is not None:
+            from engine.data.models.validation_request import ValidationRequest
+            from engine.data.models.pattern_context import PatternContext
+            
+            last_row_side = chart.row_manager.get_last_row_side()
+            context = PatternContext(
+                available_stitches=chart.get_current_num_of_stitches(),
+                side=last_row_side,
+                markers=chart.marker_manager.get_markers(last_row_side),
+                last_row_side=last_row_side,
+                is_round=is_round
+            )
+            
+            # Only validate stitch counts, not pattern syntax
+            # Pass None for pattern to skip pattern validation
+            request = ValidationRequest(
+                chart=chart,
+                operation="add_row",
+                context=context,
+                consumed=consumed,
+                produced=produced,
+                pattern=None  # Skip pattern syntax validation - already done by parser
+            )
+            validation_result = chart.validation_chain.handle(request)
+            if not validation_result.is_valid:
+                raise ValueError(f"Stitch count validation failed: {', '.join(validation_result.errors)}")
+        
         new_row = chart.row_manager.reverse_row_if_needed(new_row, is_round)
         old_count = chart.node_manager.get_last_row_produced()
         chart.add_nodes(new_row, side, is_round)
@@ -60,7 +89,9 @@ class AddRowOperation(IChartOperation):
         if pattern is None:
             errors.append("Pattern is required for add_row operation")
         elif isinstance(pattern, str) and len(pattern.strip()) == 0:
-            errors.append("Pattern cannot be empty")
+            # Allow empty patterns - they may be used for special operations like place_on_hold
+            # The pattern parser will handle empty patterns appropriately
+            pass
         elif isinstance(pattern, int) and pattern < 0:
             errors.append("Row index must be non-negative")
         

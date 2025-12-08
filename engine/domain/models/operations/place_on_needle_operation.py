@@ -12,11 +12,24 @@ class PlaceOnNeedleOperation(IChartOperation):
         stitches_on_hold = params.get('stitches_on_hold', [])
         join_side = params.get('join_side', 'RS')
         
+        old_count = chart.node_manager.get_last_row_produced()
+        
+        # Count stitches being placed back on needle (excluding bind-off stitches)
+        count_on_needle = sum(1 for stitch in stitches_on_hold if stitch.type != "bo")
+        
         chart.node_manager.places_stitches_on_needle(stitches_on_hold)
+        new_count = chart.node_manager.get_last_row_produced()
+        
         if join_side == "RS":
             chart.row_manager.set_last_row_side("WS")
         else:
             chart.row_manager.set_last_row_side("RS")
+        
+        # Record operation in stitch counter (adding stitches back to active count)
+        chart.stitch_counter.record_operation("place_on_needle", 0, count_on_needle)
+        
+        if old_count != new_count:
+            chart._notify_stitch_count_changed(old_count, new_count)
         
         return chart
     

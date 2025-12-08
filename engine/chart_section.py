@@ -12,8 +12,12 @@ from engine.domain.models.stitch_counter import StitchCounter
 from engine.domain.models.validators.stitch_count_validator import StitchCountValidator
 from engine.domain.models.validation.validation_handler import ValidationHandler
 from engine.domain.interfaces.ichart_observer import IChartObserver
+from engine.domain.interfaces.ichart_operation import IChartOperation
 from engine.data.models.chart_state_event import ChartStateEvent
 from engine.data.models.node import Node
+from engine.data.models.validation_request import ValidationRequest
+from engine.data.models.validation_results import ValidationResult
+from engine.data.models.pattern_context import PatternContext
 
 class ChartSection:
     """Main class that coordinates knitting chart generation."""
@@ -104,18 +108,107 @@ class ChartSection:
         """Get the leftmost stitch position if last row is WS, otherwise rightmost stitch position if last row is RS."""
         return self.chart_queries.find_first_stitch()
     
+    def _validate_and_execute_operation(
+        self, 
+        operation_name: str, 
+        params: Dict,
+        consumed: Optional[int] = None,
+        produced: Optional[int] = None
+    ) -> 'ChartSection':
+        """
+        Validate and execute an operation with stitch count consistency checks.
+        
+        Args:
+            operation_name: Name of the operation to execute
+            params: Parameters for the operation
+            consumed: Number of stitches consumed (for validation)
+            produced: Number of stitches produced (for validation)
+            
+        Returns:
+            ChartSection after operation execution
+            
+        Raises:
+            ValueError: If validation fails
+        """
+        op = self.operation_registry.get_operation(operation_name)
+        
+        # Create PatternContext for validation
+        last_row_side = self.row_manager.get_last_row_side()
+        context = PatternContext(
+            available_stitches=self.get_current_num_of_stitches(),
+            side=last_row_side,
+            markers=self.marker_manager.get_markers(last_row_side),
+            last_row_side=last_row_side,
+            is_round=params.get('is_round', False)
+        )
+        
+        # Validate operation using operation's validate method
+        validation_result = op.validate(params, context)
+        if not validation_result.is_valid:
+            raise ValueError(f"Operation '{operation_name}' validation failed: {', '.join(validation_result.errors)}")
+        
+        # Validate stitch count using validation chain if available
+        if self.validation_chain is not None and (consumed is not None or produced is not None):
+            request = ValidationRequest(
+                chart=self,
+                operation=operation_name,
+                context=context,
+                consumed=consumed,
+                produced=produced,
+                pattern=params.get('pattern')
+            )
+            chain_result = self.validation_chain.handle(request)
+            if not chain_result.is_valid:
+                raise ValueError(f"Stitch count validation failed: {', '.join(chain_result.errors)}")
+        
+        # Execute the operation
+        result = op.execute(self, params)
+        
+        # Post-execution consistency check
+        self._verify_stitch_count_consistency()
+        
+        return result
+    
+    def _verify_stitch_count_consistency(self) -> None:
+        """
+        Verify that stitch counter matches actual stitch count after operation.
+        Raises ValueError if inconsistency is detected.
+        """
+        if self.validator is not None:
+            consistency_result = self.validator.validate_consistency(self)
+            if not consistency_result.is_valid:
+                raise ValueError(
+                    f"Stitch count inconsistency detected after operation: {', '.join(consistency_result.errors)}"
+                )
+    
     # Operations - delegate to OperationRegistry or implement directly
     def place_on_hold(self) -> List[Node]:
         """Place the unconsumed stitches on hold and return the previous stitches on hold."""
-        op = self.operation_registry.get_operation('place_on_hold')
         previous_stitches_on_hold = self.node_manager.get_stitches_on_hold()
-        op.execute(self, {})
+        
+        # Calculate stitches to be placed on hold for validation
+        stitches_to_hold = self.node_manager.get_last_row_unconsumed_stitches()
+        count_on_hold = sum(1 for stitch in stitches_to_hold if stitch.type != "bo")
+        
+        self._validate_and_execute_operation(
+            'place_on_hold', 
+            {},
+            consumed=count_on_hold,
+            produced=0
+        )
         return previous_stitches_on_hold
     
     def place_on_needle(self, stitches_on_hold: List[Node], join_side: str) -> None:
         """Place the stitches on needle."""
-        op = self.operation_registry.get_operation('place_on_needle')
-        op.execute(self, {'stitches_on_hold': stitches_on_hold, 'join_side': join_side})
+        # Calculate stitches to be placed on needle for validation
+        count_on_needle = sum(1 for stitch in stitches_on_hold if stitch.type != "bo")
+        
+        self._validate_and_execute_operation(
+            'place_on_needle',
+            {'stitches_on_hold': stitches_on_hold, 'join_side': join_side},
+            consumed=0,
+            produced=count_on_needle
+        )
     
     # Node creation - delegate to ChartGenerator
     def add_nodes(self, row: List[str], side: str, isRound: bool = False) -> None:
@@ -138,20 +231,51 @@ class ChartSection:
     def add_row(self, pattern: Union[str, int], isRound: bool = False) -> 'ChartSection':
         """Add a new row to the pattern."""
         op = self.operation_registry.get_operation('add_row')
-        return op.execute(self, {'pattern': pattern, 'is_round': isRound})
+        
+        # Create PatternContext for basic validation
+        last_row_side = self.row_manager.get_last_row_side()
+        context = PatternContext(
+            available_stitches=self.get_current_num_of_stitches(),
+            side=last_row_side,
+            markers=self.marker_manager.get_markers(last_row_side),
+            last_row_side=last_row_side,
+            is_round=isRound
+        )
+        
+        # Validate operation parameters (pattern exists, etc.)
+        validation_result = op.validate({'pattern': pattern, 'is_round': isRound}, context)
+        if not validation_result.is_valid:
+            raise ValueError(f"Operation 'add_row' validation failed: {', '.join(validation_result.errors)}")
+        
+        # Execute operation (it will validate stitch counts after pattern expansion)
+        result = op.execute(self, {'pattern': pattern, 'is_round': isRound})
+        
+        # Post-execution consistency check
+        self._verify_stitch_count_consistency()
+        
+        return result
         
     def cast_on_start(self, count: int) -> None:
         """Cast on the specified number of stitches."""
-        op = self.operation_registry.get_operation('cast_on')
-        op.execute(self, {'count': count})
+        self._validate_and_execute_operation(
+            'cast_on',
+            {'count': count},
+            consumed=0,
+            produced=count
+        )
     
     def cast_on(self, count: int) -> 'ChartSection':
         """Cast on additional stitches to extend the current chart."""
-        op = self.operation_registry.get_operation('cast_on_additional')
-        return op.execute(self, {'count': count})
+        return self._validate_and_execute_operation(
+            'cast_on_additional',
+            {'count': count},
+            consumed=0,
+            produced=count
+        )
     
     def join(self, other: 'ChartSection') -> 'ChartSection':
         """Join this chart section with another chart section."""
+        # Join operation doesn't change stitch counts, just merges charts
         op = self.operation_registry.get_operation('join')
         return op.execute(self, {'other_chart': other})
         
