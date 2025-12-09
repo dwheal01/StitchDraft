@@ -154,7 +154,7 @@ class ChartDataSerializer:
             # Links removed - not used for display
         }, indent=2)
     
-    def _convert_single_node(self, node_dict: Dict[str, Any]) -> Node:
+    def convert_single_node(self, node_dict: Dict[str, Any]) -> Node:
         """Convert a single node dictionary to Node object."""
         return Node(
             id=str(node_dict.get("id", "")),
@@ -164,7 +164,7 @@ class ChartDataSerializer:
             fy=float(node_dict.get("fy", 0.0)) if node_dict.get("fy") is not None else 0.0
         )
     
-    def _convert_single_link(self, link_dict: Dict[str, Any]) -> Link:
+    def convert_single_link(self, link_dict: Dict[str, Any]) -> Link:
         """Convert a single link dictionary to Link object."""
         return Link(
             source=str(link_dict.get("source", "")),

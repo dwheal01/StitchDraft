@@ -82,7 +82,7 @@ if __name__ == "__main__":
       raglan_back.cast_on_start(122)
       raglan_back.repeat_rounds(["repeat(k1, p1)"], 15)
       raglan_back.repeat_rounds(["repeat(k1)"], 30)
-      raglan_back.place_marker("WS", 2)
+      raglan_back.place_marker("WS", 4)
       raglan_back.add_round("bo4, repeat(k1), rm").place_on_hold()
       raglan_back.add_round("repeat(k1)")
       raglan_back.repeat_rounds(

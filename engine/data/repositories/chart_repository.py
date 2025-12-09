@@ -131,8 +131,8 @@ class ChartRepository(IChartRepository):
     
     def _dict_to_chart_data(self, data: dict) -> ChartData:
         """Convert dictionary to ChartData object."""
-        nodes = [self.serializer._convert_single_node(node_dict) for node_dict in data.get("nodes", [])]
-        links = [self.serializer._convert_single_link(link_dict) for link_dict in data.get("links", [])]
+        nodes = [self.serializer.convert_single_node(node_dict) for node_dict in data.get("nodes", [])]
+        links = [self.serializer.convert_single_link(link_dict) for link_dict in data.get("links", [])]
         
         return ChartData(
             name=data.get("name", ""),

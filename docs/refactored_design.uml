@@ -469,12 +469,12 @@ package "Data Layer" {
         + to_chart_data(chart: ChartSection): ChartData
         + order_nodes(nodes: List[Node]): List[Node]
         + order_links(links: List[Link]): List[Link]
+        + convert_single_node(node_dict: Dict[str, Any]): Node
+        + convert_single_link(link_dict: Dict[str, Any]): Link
         - _convert_nodes(nodes: List[Node]): List[Node]
         - _convert_links(links: List[Link]): List[Link]
         - _node_to_dict(node: Node): Dict[str, Any]
         - _link_to_dict(link: Link): Dict[str, Any]
-        - _convert_single_node(node_dict: Dict[str, Any]): Node
-        - _convert_single_link(link_dict: Dict[str, Any]): Link
     }
     
     class Node {
