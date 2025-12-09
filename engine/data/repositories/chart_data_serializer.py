@@ -59,9 +59,9 @@ class ChartDataSerializer:
         Returns:
             ChartData object
         """
-        # Nodes and links are already Node/Link objects, use accessor methods
-        nodes = chart.node_manager.get_nodes()  # Returns defensive copy
-        links = chart.link_manager.get_links()   # Returns defensive copy
+        # Use public properties to access nodes and links (returns defensive copy)
+        nodes = chart.nodes
+        links = chart.links
         
         return ChartData(
             name=chart.name,
