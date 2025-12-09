@@ -30,8 +30,8 @@ class JoinOperation(IChartOperation):
         # Following the reference implementation: iterate through nodes and apply offset
         # IMPORTANT: Get last_row_stitches BEFORE getting nodes, since they share references
         other_last_row = other.node_manager.get_last_row_stitches()
-        # Access nodes directly (like reference implementation) to avoid defensive copy issues
-        other_nodes = other.node_manager.nodes
+        # Get nodes using the public API (defensive copy is fine since we create new Node objects)
+        other_nodes = other.node_manager.get_nodes()
         
         # Create a mapping from old node ID to new Node object
         # This ensures we can update last_row_stitches correctly with the same Node objects

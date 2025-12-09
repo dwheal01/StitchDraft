@@ -135,9 +135,9 @@ def test_operation_registry_usage():
     chart.add_row("k1")
     
     # Test place_on_hold operation
-    stitches_before = len(chart.node_manager.last_row_stitches)
+    stitches_before = len(chart.node_manager.get_last_row_stitches())
     previous_stitches = chart.place_on_hold()  # Returns previous stitches on hold
-    stitches_after = len(chart.node_manager.last_row_stitches)
+    stitches_after = len(chart.node_manager.get_last_row_stitches())
     
     # Get the stitches that were just placed on hold
     stitches_just_placed_on_hold = chart.node_manager.get_stitches_on_hold()
@@ -147,7 +147,7 @@ def test_operation_registry_usage():
     
     # Test place_on_needle operation - use the stitches that were just placed on hold
     chart.place_on_needle(stitches_just_placed_on_hold, "RS")
-    stitches_restored = len(chart.node_manager.last_row_stitches)
+    stitches_restored = len(chart.node_manager.get_last_row_stitches())
     assert stitches_restored > stitches_after, "Stitches should be restored"
     print(f"✓ place_on_needle() uses OperationRegistry: {stitches_after} -> {stitches_restored}")
     

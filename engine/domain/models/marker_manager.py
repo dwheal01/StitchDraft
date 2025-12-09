@@ -5,23 +5,23 @@ class MarkerManager(IMarkerProvider):
     """Handles creation and management of markers."""
     
     def __init__(self):
-        self.markers_rs = []
-        self.markers_ws = []
+        self._markers_rs = []
+        self._markers_ws = []
     
     def add_marker(self, side: str, position: int, num_stitches: int) -> None:
         """Add a marker to the collection."""
         if side == "RS":
-            self.markers_rs.append(position)
-            self.markers_ws.append(num_stitches-position)
+            self._markers_rs.append(position)
+            self._markers_ws.append(num_stitches-position)
         elif side == "WS":
-            self.markers_rs.append(num_stitches-position)
-            self.markers_ws.append(position)
-        self.markers_rs.sort()
-        self.markers_ws.sort()
+            self._markers_rs.append(num_stitches-position)
+            self._markers_ws.append(position)
+        self._markers_rs.sort()
+        self._markers_ws.sort()
      
     def clear_markers(self) -> None:
-       self.markers_rs = []
-       self.markers_ws = []
+       self._markers_rs = []
+       self._markers_ws = []
        
     def move_marker(self, side: str, position: int, shift_amount: int, num_stitches: int) -> None:
       old_markers = self.get_markers(side)
@@ -35,33 +35,33 @@ class MarkerManager(IMarkerProvider):
     
     def remove_marker(self, side: str, position: int) -> None:
       if side == "RS":
-          index = self.markers_rs.index(position)
-          self.markers_rs.remove(self.markers_rs[index])
-          self.markers_ws.remove(self.markers_ws[len(self.markers_ws)-index-1])
+          index = self._markers_rs.index(position)
+          self._markers_rs.remove(self._markers_rs[index])
+          self._markers_ws.remove(self._markers_ws[len(self._markers_ws)-index-1])
       elif side == "WS":
-          index = self.markers_ws.index(position)
-          self.markers_ws.remove(self.markers_ws[index])
-          self.markers_rs.remove(self.markers_rs[len(self.markers_rs)-index-1])
+          index = self._markers_ws.index(position)
+          self._markers_ws.remove(self._markers_ws[index])
+          self._markers_rs.remove(self._markers_rs[len(self._markers_rs)-index-1])
           
     def get_markers(self, side: str) -> List[int]:
         """Get the markers for the collection (returns defensive copy)."""
-        markers = self.markers_rs if side == "RS" else self.markers_ws
+        markers = self._markers_rs if side == "RS" else self._markers_ws
         return list(markers)
     
     def get_markers_rs(self) -> List[int]:
         """Get RS markers (returns defensive copy)."""
-        return list(self.markers_rs)
+        return list(self._markers_rs)
     
     def get_markers_ws(self) -> List[int]:
         """Get WS markers (returns defensive copy)."""
-        return list(self.markers_ws)
+        return list(self._markers_ws)
     
     def add_marker_to_rs(self, position: int) -> None:
         """Add a marker to RS markers list."""
-        self.markers_rs.append(position)
-        self.markers_rs.sort()
+        self._markers_rs.append(position)
+        self._markers_rs.sort()
     
     def add_marker_to_ws(self, position: int) -> None:
         """Add a marker to WS markers list."""
-        self.markers_ws.append(position)
-        self.markers_ws.sort()
+        self._markers_ws.append(position)
+        self._markers_ws.sort()
