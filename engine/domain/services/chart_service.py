@@ -10,7 +10,6 @@ from engine.chart_section import ChartSection
 from engine.data.repositories.chart_data_serializer import ChartDataSerializer
 from engine.domain.models.pattern_processor import PatternProcessor
 from engine.domain.models.validation.validation_handler import ValidationHandler
-from engine.presentation.observers.chart_visualization_observer import ChartVisualizationObserver
 
 if TYPE_CHECKING:
     from engine.chart_section import ChartSection

@@ -4,8 +4,11 @@ skinparam classAttributeIconSize 0
 skinparam componentStyle rectangle
 skinparam maxMessageSize 60
 skinparam maxClassSize 60
-skinparam maxwidth 20000
-skinparam maxheight 20000
+skinparam maxwidth 50000
+skinparam maxheight 50000
+skinparam dpi 300
+skinparam shadowing false
+skinparam wrapWidth 200
 
 package "Presentation Layer" {
     class ChartViewModel {
@@ -23,164 +26,124 @@ package "Presentation Layer" {
     }
     
     class LinkViewModel {
-        + sourceId: str
-        + targetId: str
-    }
-
-    class VisualizationView {
-         - chartsData: List[ChartViewModel]
-         - mapper: ViewModelMapper
-         - renderer: ChartRenderer
-         - currentChartIndex: int
-         --
-         + loadChartsData(): void
-         + loadIndividualCharts(): void
-         + initializeInterface(): void
-         + switchTab(chartIndex: int): void
-         + renderChart(chartData: ChartViewModel, chartIndex: int): void
-         - refreshVisualization(): void
-      }
-    
-    class ChartRenderer {
-         --
-         + renderNodes(svg: Selection, nodes: List[NodeViewModel]): void
-         + renderLinks(svg: Selection, links: List[LinkViewModel], nodes: List[NodeViewModel]): void
-         + calculateLayout(nodes: List[NodeViewModel]): Layout
-         - _getNodeColor(type: str): str
-      }
-
-    class ViewModelMapper {
-        + toViewModel(chartData: ChartData): ChartViewModel
-        + toNodeViewModel(node: Node): NodeViewModel
-        + toLinkViewModel(link: Link): LinkViewModel
-    }
-    
-    class UIController {
-        - view: VisualizationView
-        --
-        + handleTabSwitch(index: int): void
-        + downloadChart(index: int): void
-        + handleUserInteraction(): void
-    }
-
-    interface IBodyFormTemplate {
-        + applyTransform(nodes: List<NodeViewModel>): List<NodeViewModel>
-        + getTemplateData(): Dict
-    }
-    
-    class BodyFormTemplateRenderer {
-        - template: IBodyFormTemplate
-        --
-        + renderWithTemplate(chart: ChartViewModel, template: IBodyFormTemplate): void
+        + source_id: str
+        + target_id: str
     }
 
     class ChartVisualizationObserver implements IChartObserver {
-        - view: VisualizationView
+        - view: Any
         - mapper: ViewModelMapper
+        - serializer: ChartDataSerializer
+        - _last_view_model: Optional[ChartViewModel]
         --
-        + onStitchCountChanged(chart: ChartSection, oldCount: int, newCount: int): void
-        + onNodeAdded(chart: ChartSection, node: Node): void
-        + onLinkAdded(chart: ChartSection, link: Link): void
-        + onRowAdded(chart: ChartSection, row: List[str]): void
-        + onMarkerPlaced(chart: ChartSection, side: str, position: int): void
-        + onChartStateChanged(chart: ChartSection, event: ChartStateEvent): void
-        - updateVisualization(chart: ChartSection): void
+        + on_stitch_count_changed(chart: ChartSection, old_count: int, new_count: int): void
+        + on_node_added(chart: ChartSection, node: Node): void
+        + on_link_added(chart: ChartSection, link: Link): void
+        + on_row_added(chart: ChartSection, row: List[str]): void
+        + on_marker_placed(chart: ChartSection, side: str, position: int): void
+        + on_chart_state_changed(chart: ChartSection, event: ChartStateEvent): void
+        + get_chart_view_model(chart: ChartSection): ChartViewModel
+        + get_last_view_model(): Optional[ChartViewModel]
     }
 
     class ChartVisualizationService {
-        - chartService: ChartService
+        - chart_service: ChartService
         --
-        + createVisualizationObserver(view: Any): ChartVisualizationObserver
-        + attachVisualizationObserver(chart: ChartSection, observer: Optional[ChartVisualizationObserver]): void
-        + getChartViewModel(chart: ChartSection): ChartViewModel
+        + create_visualization_observer(view: Any): ChartVisualizationObserver
+        + attach_visualization_observer(chart: ChartSection, observer: Optional[ChartVisualizationObserver]): void
+        + get_chart_view_model(chart: ChartSection): ChartViewModel
+    }
+    
+    class ViewModelMapper {
+        --
+        + to_view_model(chart_data: ChartData): ChartViewModel
+        + to_node_view_model(node: Node): NodeViewModel
+        + to_link_view_model(link: Link): LinkViewModel
+        + view_model_to_dict(view_model: ChartViewModel): Dict[str, Any]
     }
 }
 
 package "Domain Layer" {
+    ' Interfaces
     interface IChartRepository {
-      + saveChart(chartData: ChartData): void
-      + loadChart(name: str): ChartData
-      + loadAllCharts(): List[ChartData]
-      + saveCharts(charts: List[ChartData]): void
+        + save_chart(chart_data: ChartData): void
+        + load_chart(name: str): ChartData
+        + load_all_charts(): List[ChartData]
+        + save_charts(charts: List[ChartData]): void
     }
 
+    ' Services
     class ChartService {
-        - chartRepository: IChartRepository
-        - patternProcessor: PatternProcessor
-        - chartFactory: ChartSectionFactory
-        - validationChain: ValidationHandler
+        - chart_repository: IChartRepository
+        - chart_factory: ChartSectionFactory
         - serializer: ChartDataSerializer
+        - pattern_processor: PatternProcessor
+        - validation_chain: ValidationHandler
         --
-        + createChart(name: str, start_side: str, sts: int, rows: int): ChartSection
-        + processPattern(chart: ChartSection, pattern: str): ExpandedPattern
-        + exportChart(chart: ChartSection): ChartData
-        + joinCharts(chart1: ChartSection, chart2: ChartSection): ChartSection
-        + validateChart(chart: ChartSection, request: ValidationRequest): ValidationResult
-        + saveChart(chart: ChartSection): void
-        + loadChart(name: str): ChartData
-        + loadAllCharts(): List[ChartData]
-        + saveCharts(charts: List[ChartSection]): void
+        + create_chart(name: str, start_side: str, sts: int, rows: int): ChartSection
+        + process_pattern(chart: ChartSection, pattern: str): ExpandedPattern
+        + export_chart(chart: ChartSection): ChartData
+        + save_chart(chart: ChartSection): void
+        + load_chart(name: str): ChartData
+        + load_all_charts(): List[ChartData]
+        + save_charts(charts: List[ChartSection]): void
+        + join_charts(chart1: ChartSection, chart2: ChartSection): ChartSection
+        + validate_chart(chart: ChartSection, request: ValidationRequest): ValidationResult
+        - _create_pattern_processor(): PatternProcessor
+        - _create_validation_chain(): ValidationHandler
     }
     
     class PatternProcessor {
-        - patternParser: PatternParser
+        - pattern_parser: PatternParser
+        - pattern_validator: PatternValidator
         --
-        + expandPattern(pattern: str, context: PatternContext): ExpandedPattern
-        + validatePattern(pattern: str, context: PatternContext): bool
-        + processMarkers(pattern: str, context: PatternContext): void
-        + validateAndExpand(pattern: str, context: PatternContext): ExpandedPattern
-
+        + expand_pattern(pattern: str, context: PatternContext): ExpandedPattern
+        + validate_pattern(pattern: str, context: PatternContext): bool
+        + process_markers(pattern: str, context: PatternContext): List[int]
+        + validate_and_expand(pattern: str, context: PatternContext): ExpandedPattern
     }
     
-    class ChartGenerator {
-        --
-        + generateNodes(charSection: ChartSection, row: List[str], context: GenerationContext): List[Node]
-        + generateLinks(charSection: ChartSection, previousRow: List[Node], currentRow: List[Node]): List[Link]
-        + calculatePositions(charSection: ChartSection, row: List[str], previousStitches: List[Node]): List[Position]
-        + createNodesForRow(chart: ChartSection, row: List[str], side: str, rowNum: int): void
-        + addHorizontalLinks(chart: ChartSection, index: int): void
-    }
-
     class ChartSectionFactory {
         --
         + create(config: ChartConfig): ChartSection
-        + createWithDefaults(name: str, start_side: str, sts: int, rows: int): ChartSection
-        - createStitchCounter(): StitchCounter
-        - createValidator(): StitchCountValidator
-        - createValidationChain(): ValidationHandler
-        - createRowManager(start_side: str): RowManager
-        - createNodeManager(): NodeManager
-        - createLinkManager(): LinkManager
-        - createPositionCalculator(sts: int, rows: int): PositionCalculator
-        - createMarkerManager(): MarkerManager
-        - createPatternParser(markerManager: MarkerManager): PatternParser
-        - createChartGenerator(positionCalculator: PositionCalculator): ChartGenerator
-        - createChartQueries(chart: ChartSection): ChartQueries
-        - createOperationRegistry(): OperationRegistry
+        + create_with_defaults(name: str, start_side: str, sts: int, rows: int): ChartSection
+        - _create_stitch_counter(): StitchCounter
+        - _create_validator(): StitchCountValidator
+        - _create_validation_chain(): ValidationHandler
+        - _create_row_manager(start_side: str): RowManager
+        - _create_node_manager(): NodeManager
+        - _create_link_manager(): LinkManager
+        - _create_position_calculator(sts: int, rows: int): PositionCalculator
+        - _create_marker_manager(): MarkerManager
+        - _create_pattern_parser(marker_manager: MarkerManager): PatternParser
+        - _create_chart_generator(position_calculator: PositionCalculator): ChartGenerator
+        - _create_chart_queries(chart: ChartSection): ChartQueries
+        - _create_operation_registry(): OperationRegistry
     }
     
    class ChartSection {
       - name: str
       - start_side: str
       - observers: List[IChartObserver]
-      - stitchCounter: StitchCounter
+      - row_manager: RowManager
+      - node_manager: NodeManager
+      - link_manager: LinkManager
+      - position_calculator: PositionCalculator
+      - marker_manager: MarkerManager
+      - pattern_parser: PatternParser
+      - chart_generator: ChartGenerator
+      - chart_queries: ChartQueries
+      - operation_registry: OperationRegistry
+      - stitch_counter: StitchCounter
       - validator: StitchCountValidator
-      - rowManager: RowManager
-      - nodeManager: NodeManager
-      - linkManager: LinkManager
-      - positionCalculator: PositionCalculator
-      - markerManager: MarkerManager
-      - patternParser: PatternParser
-      - chartGenerator: ChartGenerator
-      - chartQueries: ChartQueries
-      - operationRegistry: OperationRegistry
+      - validation_chain: Optional[ValidationHandler]
       --
       ' Observer management
       + attach(observer: IChartObserver): void
       + detach(observer: IChartObserver): void
-      + notifyObservers(event: ChartStateEvent): void
+      + notify_observers(event: ChartStateEvent): void
       
-      ' High-level operations (delegate to commands)
+      ' High-level operations
       + add_row(pattern: Union[str, int], isRound: bool): ChartSection
       + add_round(pattern: Union[str, int]): ChartSection
       + cast_on_start(count: int): void
@@ -205,16 +168,18 @@ package "Domain Layer" {
       + find_first_stitch(): Node
       
       ' Properties
-      + nodes: List[Node]
-      + links: List[Link]
-      + rows: List[List[str]]
+      + nodes: List[Node] {property}
+      + links: List[Link] {property}
+      + rows: List[List[str]] {property}
       
-      ' Internal notification methods
-      - notifyStitchCountChanged(oldCount: int, newCount: int): void
-      - notifyNodeAdded(node: Node): void
-      - notifyLinkAdded(link: Link): void
-      - notifyRowAdded(row: List[str]): void
-      - notifyMarkerPlaced(side: str, position: int): void
+      ' Internal methods
+      - _validate_and_execute_operation(operation_name: str, params: Dict, consumed: Optional[int], produced: Optional[int]): ChartSection
+      - _verify_stitch_count_consistency(): void
+      - _notify_stitch_count_changed(old_count: int, new_count: int): void
+      - _notify_node_added(node: Optional[Node]): void
+      - _notify_link_added(link: Dict): void
+      - _notify_row_added(row: List[str]): void
+      - _notify_marker_placed(side: str, position: int): void
    }
 
    class ChartQueries {
@@ -230,26 +195,47 @@ package "Domain Layer" {
    }
 
    class ChartGenerator {
-      - positionCalculator: PositionCalculator
+      - position_calculator: PositionCalculator
       --
-      + generateNodes(chart: ChartSection, row: List[str], context: GenerationContext): List[Node]
-      + generateLinks(chart: ChartSection, previousRow: List[Node], currentRow: List[Node]): List[Link]
-      + calculatePositions(chart: ChartSection, row: List[str], previousStitches: List[Node]): List[Position]
-      + createNodesForRow(chart: ChartSection, row: List[str], side: str, rowNum: int): void
-      + addHorizontalLinks(chart: ChartSection, index: int): void
+      + generate_nodes(chart: ChartSection, row: List[str], context: GenerationContext): List[Node]
+      + generate_links(chart: ChartSection, previous_row: List[Node], current_row: List[Node]): List[Link]
+      + calculate_positions(chart: ChartSection, row: List[str], previous_stitches: List[Node]): List[float]
+      + create_nodes_for_row(chart: ChartSection, row: List[str], side: str, row_num: int): void
+      + add_horizontal_links(chart: ChartSection, index: int): void
    }
 
    class PlaceOnHoldOperation implements IChartOperation {
+      --
       + execute(chart: ChartSection, params: Dict): ChartSection
       + validate(params: Dict, context: PatternContext): ValidationResult
    }
 
    class PlaceOnNeedleOperation implements IChartOperation {
+      --
       + execute(chart: ChartSection, params: Dict): ChartSection
       + validate(params: Dict, context: PatternContext): ValidationResult
    }
 
    class JoinOperation implements IChartOperation {
+      --
+      + execute(chart: ChartSection, params: Dict): ChartSection
+      + validate(params: Dict, context: PatternContext): ValidationResult
+   }
+
+   class CastOnOperation implements IChartOperation {
+      --
+      + execute(chart: ChartSection, params: Dict): ChartSection
+      + validate(params: Dict, context: PatternContext): ValidationResult
+   }
+
+   class AddRowOperation implements IChartOperation {
+      --
+      + execute(chart: ChartSection, params: Dict): ChartSection
+      + validate(params: Dict, context: PatternContext): ValidationResult
+   }
+
+   class CastOnAdditionalOperation implements IChartOperation {
+      --
       + execute(chart: ChartSection, params: Dict): ChartSection
       + validate(params: Dict, context: PatternContext): ValidationResult
    }
@@ -262,7 +248,7 @@ package "Domain Layer" {
     
     class PatternParser {
       - CONSUME_PRODUCE: Dict[str, Tuple[int, int]]
-      - markerProvider: IMarkerProvider
+      - marker_provider: IMarkerProvider
       --
       + expand_pattern(pattern: str, available_stitches: int, side: str): ExpandedPattern
       + split_tokens(pattern: str): List[str]
@@ -281,6 +267,12 @@ package "Domain Layer" {
         + is_wrong_side(isRound: bool): bool
         + reverse_row_if_needed(row: List[str], isRound: bool): List[str]
         + duplicate_row(index: int): List[str]
+        + get_rows(): List[List[str]]
+        + get_last_row_side(): str
+        + get_start_side(): str
+        + get_row_count(): int
+        + get_row(index: int): List[str]
+        + update_row(index: int, row: List[str]): void
         - _validate_row_index(index: int): void
     }
     
@@ -288,7 +280,9 @@ package "Domain Layer" {
         - nodes: List[Node]
         - node_counter: int
         - last_row_stitches: List[Node]
+        - last_row_unconsumed_stitches: List[Node]
         - stitches_on_hold: List[Node]
+        - last_row_produced: int
         --
         + create_stitch_node(stitch: str, fx: float, fy: float, row: int): Node
         + create_strand_node(row: int): Node
@@ -297,6 +291,18 @@ package "Domain Layer" {
         + set_last_row_unconsumed_stitches(unconsumed_stitches: List[Node]): void
         + get_stitches_on_hold(): List[Node]
         + set_last_row_produced(produced: int): void
+        + get_nodes(): List[Node]
+        + get_last_row_stitches(): List[Node]
+        + get_last_row_unconsumed_stitches(): List[Node]
+        + get_last_row_produced(): int
+        + get_node_counter(): int
+        + set_last_row_stitches(stitches: List[Node]): void
+        + append_to_last_row_stitches(stitches: List[Node]): void
+        + clear_last_row_stitches(): void
+        + extend_nodes(nodes: List[Node]): void
+        + increment_node_counter(amount: int): void
+        + update_last_row_produced(consumed: int, produced: int): int
+        + replace_nodes(nodes: List[Node]): void
     }
     
     class LinkManager {
@@ -304,6 +310,10 @@ package "Domain Layer" {
         --
         + add_horizontal_link(source_id: str, target_id: str): void
         + add_vertical_link(source_id: str, target_id: str): void
+        + get_links(): List[Link]
+        + extend_links(links: List[Link]): void
+        + replace_links(links: List[Link]): void
+        + remove_invalid_links(node_ids: set): int
     }
     
     class PositionCalculator {
@@ -321,7 +331,7 @@ package "Domain Layer" {
         - _center_anchors(anchors: List[float], row: List[str]): List[float]
     }
     
-    class MarkerManager {
+    class MarkerManager implements IMarkerProvider {
         - markers_rs: List[int]
         - markers_ws: List[int]
         --
@@ -329,26 +339,30 @@ package "Domain Layer" {
         + get_markers(side: str): List[int]
         + move_marker(side: str, position: int, shift_amount: int, num_stitches: int): void
         + remove_marker(side: str, position: int): void
-        + get_markers(side: str): List[int]
+        + clear_markers(): void
+        + get_markers_rs(): List[int]
+        + get_markers_ws(): List[int]
+        + add_marker_to_rs(position: int): void
+        + add_marker_to_ws(position: int): void
     }
 
     abstract class ValidationHandler {
-        - nextHandler: ValidationHandler
+        - _next_handler: Optional[ValidationHandler]
         --
-        + setNext(handler: ValidationHandler): void
+        + set_next(handler: ValidationHandler): ValidationHandler
         + handle(request: ValidationRequest): ValidationResult
         + {abstract} validate(request: ValidationRequest): ValidationResult
     }
     
     class ValidationRequest {
         + chart: ChartSection
-        + pattern: str
-        + nodes: List[Node]
-        + links: List[Link]
-        + operation: str
-        + context: PatternContext
-        + consumed: int
-        + produced: int
+        + pattern: Optional[str]
+        + nodes: Optional[List[Node]]
+        + links: Optional[List[Link]]
+        + operation: Optional[str]
+        + context: Optional[PatternContext]
+        + consumed: Optional[int]
+        + produced: Optional[int]
     }
 
     class StitchCountValidationHandler extends ValidationHandler {
@@ -368,40 +382,48 @@ package "Domain Layer" {
       --
       + validate(request: ValidationRequest): ValidationResult
     }
+
+    class ChartDataValidationHandler extends ValidationHandler {
+        - _validator: ChartDataValidator
+        --
+        + validate(request: ValidationRequest): ValidationResult
+    }
     
     class ValidationResult {
-        + isValid: bool
+        + is_valid: bool
         + errors: List[str]
-        + raiseIfInvalid(): void
+        + raise_if_invalid(): void
     }
 
     class StitchCounter {
-      - currentCount: int
+      - current_count: int
       - history: List[StitchCountEvent]
       --
-      + getCurrentCount(): int
-      + recordOperation(operation: str, consumed: int, produced: int): void
-      + validateConsistency(): void
-      + getHistory(): List[StitchCountEvent]
+      + get_current_count(): int
+      + record_operation(operation: str, consumed: int, produced: int): void
+      + validate_consistency(actual_count: int): bool
+      + get_history(): List[StitchCountEvent]
       + reset(count: int): void
    }
 
    class StitchCountValidator {
         --
-        + validateStitchCount(chart: ChartSection, consumed: int, produced: int): ValidationResult
-        + validateConsistency(chart: ChartSection): ValidationResult
+        + validate_stitch_count(chart: ChartSection, consumed: int, produced: int): ValidationResult
+        + validate_consistency(chart: ChartSection): ValidationResult
     }
 
     class PatternValidator {
         --
-        + validatePattern(pattern: str, context: PatternContext): ValidationResult
-        + validateTokens(tokens: List[str]): ValidationResult
+        + validate_pattern(pattern: str, context: PatternContext): ValidationResult
+        + validate_tokens(tokens: List[str]): ValidationResult
+        - _split_tokens(pattern: str): List[str]
+        - _estimate_stitches(tokens: List[str], available: int): int
     }
 
     class OrderValidator {
         --
-        + validateOrder(nodes: List[Node], links: List[Link]): ValidationResult
-        + validateLinkIntegrity(links: List[Link], nodes: List[Node]): ValidationResult
+        + validate_order(nodes: List[Node], links: List[Link]): ValidationResult
+        + validate_link_integrity(links: List[Link], nodes: List[Node]): ValidationResult
     }
 
     interface IChartOperation {
@@ -409,28 +431,24 @@ package "Domain Layer" {
         + validate(params: Dict, context: PatternContext): ValidationResult
     }
     
-    class CastOnOperation {
-        + execute(chart: ChartSection, params: Dict): ChartSection
-        + validate(params: Dict, context: PatternContext): ValidationResult
-    }
-    
-    class AddRowOperation {
-        + execute(chart: ChartSection, params: Dict): ChartSection
-        + validate(params: Dict, context: PatternContext): ValidationResult
-    }
-
-    class CastOnAdditionalOperation {
-       + execute(chart: ChartSection, params: Dict): ChartSection
-       + validate(params: Dict, context: PatternContext): ValidationResult
-    } 
-    
     class OperationRegistry {
-        - operations: Dict[str, IChartOperation]
+        - _operations: Dict[str, IChartOperation]
         --
         + register(name: str, operation: IChartOperation): void
-        + getOperation(name: str): IChartOperation
-        + has_operation(name: str): bool:
+        + get_operation(name: str): IChartOperation
+        + has_operation(name: str): bool
+    }
 
+    class ValidationChainBuilder {
+         - _first_handler: Optional[ValidationHandler]
+         - _last_handler: Optional[ValidationHandler]
+         --
+         + add_stitch_count_validation(): ValidationChainBuilder
+         + add_pattern_validation(): ValidationChainBuilder
+         + add_order_validation(): ValidationChainBuilder
+         + add_chart_data_validation(): ValidationChainBuilder
+         + build(): Optional[ValidationHandler]
+         - _add_handler(handler: ValidationHandler): ValidationChainBuilder
     }
 }
 
@@ -444,9 +462,17 @@ package "Data Layer" {
     class ChartDataSerializer {
         --
         + serialize(chart: ChartSection): str
-        + serializeDeterministic(chart: ChartSection): str
-        + orderNodes(nodes: List[Node]): List[Node]
-        + orderLinks(links: List[Link]): List[Link]
+        + serialize_deterministic(chart: ChartSection): str
+        + serialize_deterministic_from_chart_data(chart_data: ChartData): str
+        + to_chart_data(chart: ChartSection): ChartData
+        + order_nodes(nodes: List[Node]): List[Node]
+        + order_links(links: List[Link]): List[Link]
+        - _convert_nodes(nodes: List[Node]): List[Node]
+        - _convert_links(links: List[Link]): List[Link]
+        - _node_to_dict(node: Node): Dict[str, Any]
+        - _link_to_dict(link: Link): Dict[str, Any]
+        - _convert_single_node(node_dict: Dict[str, Any]): Node
+        - _convert_single_link(link_dict: Dict[str, Any]): Link
     }
     
     class Node {
@@ -469,37 +495,31 @@ package "Data Layer" {
         + rows: int
     }
 
-    class ChartDataValidationHandler extends ValidationHandler {
+    class ChartRepository implements IChartRepository {
+        - data_path: Path
         - validator: ChartDataValidator
+        - serializer: ChartDataSerializer
+        - view_model_mapper: ViewModelMapper
         --
-        + validate(request: ValidationRequest): ValidationResult
+        + save_chart(chart_data: ChartData): void
+        + load_chart(name: str): ChartData
+        + load_all_charts(): List[ChartData]
+        + save_charts(charts: List[ChartData]): void
+        - _dict_to_chart_data(data: dict): ChartData
     }
     
-    class ValidationChainBuilder {
-         - firstHandler: ValidationHandler
-         - lastHandler: ValidationHandler
-         --
-         + addStitchCountValidation(): ValidationChainBuilder
-         + addPatternValidation(): ValidationChainBuilder
-         + addOrderValidation(): ValidationChainBuilder
-         + addChartDataValidation(): ValidationChainBuilder
-         + build(): ValidationHandler
-    }
-
-    class ChartRepository {
-        - dataPath: str
-        - validator: ChartDataValidator
+    class ChartDataValidator {
         --
-        + saveChart(chartData: ChartData): void
-        + loadChart(name: str): ChartData
-        + loadAllCharts(): List[ChartData]
-        + saveCharts(charts: List[ChartData]): void
+        + validate_chart_data(chart_data: ChartData): ValidationResult
+        + validate(chart_data: ChartData): ValidationResult
+        - _validate_nodes(nodes: List[Node]): List[str]
+        - _validate_links(links: List[Link], nodes: List[Node]): List[str]
     }
     
     class PatternContext {
         + available_stitches: int
         + side: str
-        + markers: List[Marker]
+        + markers: List[int]
         + last_row_side: str
         + is_round: bool
     }
@@ -512,47 +532,69 @@ package "Data Layer" {
     }
 
     interface IChartObserver {
-        + onStitchCountChanged(chart: ChartSection, oldCount: int, newCount: int): void
-        + onNodeAdded(chart: ChartSection, node: Node): void
-        + onLinkAdded(chart: ChartSection, link: Link): void
-        + onRowAdded(chart: ChartSection, row: List[str]): void
-        + onMarkerPlaced(chart: ChartSection, side: str, position: int): void
-        + onChartStateChanged(chart: ChartSection, event: ChartStateEvent): void
+        + on_stitch_count_changed(chart: ChartSection, old_count: int, new_count: int): void
+        + on_node_added(chart: ChartSection, node: Node): void
+        + on_link_added(chart: ChartSection, link: Link): void
+        + on_row_added(chart: ChartSection, row: List[str]): void
+        + on_marker_placed(chart: ChartSection, side: str, position: int): void
+        + on_chart_state_changed(chart: ChartSection, event: ChartStateEvent): void
     }
     
     class ChartStateEvent {
-        + eventType: str
-        + chart: ChartSection
-        + data: Dict
-        + timestamp: DateTime
+        + event_type: str
+        + chart: Any
+        + data: Dict[str, Any]
+        + timestamp: datetime
+    }
+
+    class StitchCountEvent {
+        + operation: str
+        + consumed: int
+        + produced: int
+        + old_count: int
+        + new_count: int
+        + timestamp: Optional[datetime]
+    }
+
+    class GenerationContext {
+        + row: List[str]
+        + side: str
+        + row_num: int
+        + previous_stitches: List[Node]
+        + is_round: bool
     }
 }
 
 ' ============================================
+' INTERFACE IMPLEMENTATIONS
+' ============================================
+ChartRepository ..|> IChartRepository : implements
+MarkerManager ..|> IMarkerProvider : implements
+ChartVisualizationObserver ..|> IChartObserver : implements
+CastOnOperation ..|> IChartOperation : implements
+AddRowOperation ..|> IChartOperation : implements
+CastOnAdditionalOperation ..|> IChartOperation : implements
+PlaceOnHoldOperation ..|> IChartOperation : implements
+PlaceOnNeedleOperation ..|> IChartOperation : implements
+JoinOperation ..|> IChartOperation : implements
+
+' ============================================
 ' PRESENTATION LAYER RELATIONSHIPS
 ' ============================================
-VisualizationView --> ViewModelMapper : uses
-VisualizationView --> ChartViewModel : uses
-ChartRenderer --> ChartViewModel : renders
-ChartRenderer --> NodeViewModel : renders
-ChartRenderer --> LinkViewModel : renders
 ViewModelMapper --> ChartData : converts from
 ViewModelMapper --> Node : converts from
 ViewModelMapper --> Link : converts from
-BodyFormTemplateRenderer --> IBodyFormTemplate : uses
-BodyFormTemplateRenderer --> ChartViewModel : uses
 ChartViewModel *-- NodeViewModel : contains
 ChartViewModel *-- LinkViewModel : contains
-UIController --> VisualizationView : controls
 ChartVisualizationService --> ChartService : uses
+ChartVisualizationObserver --> ViewModelMapper : uses
+ChartVisualizationObserver --> ChartDataSerializer : uses
+ChartVisualizationObserver --> ChartSection : observes
 
 ' ============================================
 ' DOMAIN LAYER - OBSERVER PATTERN
 ' ============================================
 ChartSection --> IChartObserver : notifies
-ChartVisualizationObserver ..|> IChartObserver : implements
-ChartVisualizationObserver --> VisualizationView : updates
-ChartVisualizationObserver --> ViewModelMapper : uses
 ChartVisualizationObserver --> ChartSection : observes
 ChartVisualizationObserver ..> ChartStateEvent : uses
 
@@ -561,13 +603,10 @@ ChartVisualizationObserver ..> ChartStateEvent : uses
 ' ============================================
 ChartService --> IChartRepository : uses
 ChartService --> PatternProcessor : uses
-ChartService --> ChartGenerator : uses
-ChartService --> ChartSection : creates/manages
 ChartService --> ChartSectionFactory : uses
 ChartService --> ChartDataSerializer : uses
 ChartService --> ChartConfig : uses
-ChartService --> ChartVisualizationObserver : creates
-ChartService --> ChartSection : attaches observer
+ChartService --> ValidationHandler : uses
 
 ChartSectionFactory --> ChartSection : creates
 ChartSectionFactory --> StitchCounter : creates
@@ -582,6 +621,7 @@ ChartSectionFactory --> ChartGenerator : creates
 ChartSectionFactory --> ChartQueries : creates
 ChartSectionFactory --> OperationRegistry : creates
 ChartSectionFactory --> ChartConfig : uses
+ChartSectionFactory --> ValidationHandler : creates
 ChartSectionFactory ..> IMarkerProvider : uses
 
 ' ============================================
@@ -595,9 +635,10 @@ ChartSection *-- MarkerManager : composition
 ChartSection *-- PatternParser : composition
 ChartSection *-- StitchCounter : composition
 ChartSection *-- StitchCountValidator : composition
-ChartSection --> ChartGenerator : uses\n(for node creation)
-ChartSection --> ChartQueries : uses\n(for queries)
-ChartSection --> OperationRegistry : uses\n(for operations)
+ChartSection --> ChartGenerator : uses
+ChartSection --> ChartQueries : uses
+ChartSection --> OperationRegistry : uses
+ChartSection --> ValidationHandler : uses
 
 ' ============================================
 ' DOMAIN LAYER - CHART QUERIES
@@ -608,15 +649,15 @@ ChartQueries --> MarkerManager : queries\n(via ChartSection)
 ChartQueries --> RowManager : queries\n(via ChartSection)
 
 ' ============================================
-' DOMAIN LAYER - CHART GENERATOR (EXPANDED)
+' DOMAIN LAYER - CHART GENERATOR
 ' ============================================
-ChartGenerator --> ChartSection : operates on\n(delegation)
+ChartGenerator --> ChartSection : operates on
 ChartGenerator --> NodeManager : creates nodes\n(via ChartSection)
 ChartGenerator --> LinkManager : creates links\n(via ChartSection)
 ChartGenerator --> PositionCalculator : uses\n(via ChartSection)
-ChartGenerator --> OrderValidator : uses
 ChartGenerator --> Node : creates
 ChartGenerator --> Link : creates
+ChartGenerator ..> GenerationContext : uses
 
 ' ============================================
 ' DOMAIN LAYER - PROCESSOR
@@ -630,7 +671,6 @@ PatternProcessor --> ExpandedPattern : returns
 ' DOMAIN LAYER - PARSER & MARKER
 ' ============================================
 PatternParser ..> IMarkerProvider : uses
-MarkerManager ..|> IMarkerProvider : implements
 
 ' ============================================
 ' DOMAIN LAYER - POSITION CALCULATOR
@@ -641,7 +681,6 @@ PositionCalculator ..> NodeManager : uses
 ' ============================================
 ' DOMAIN LAYER - VALIDATORS
 ' ============================================
-' Chain of Responsibility relationships
 ValidationHandler <|-- StitchCountValidationHandler
 ValidationHandler <|-- PatternValidationHandler
 ValidationHandler <|-- OrderValidationHandler
@@ -650,14 +689,12 @@ ValidationHandler --> ValidationHandler : next
 ValidationHandler --> ValidationRequest : uses
 ValidationHandler --> ValidationResult : returns
 
-' Chain builder
 ValidationChainBuilder --> ValidationHandler : builds
 ValidationChainBuilder --> StitchCountValidationHandler : creates
 ValidationChainBuilder --> PatternValidationHandler : creates
 ValidationChainBuilder --> OrderValidationHandler : creates
 ValidationChainBuilder --> ChartDataValidationHandler : creates
 
-' Usage
 ChartService --> ValidationHandler : uses
 ChartSection --> ValidationHandler : uses
 StitchCountValidationHandler --> StitchCountValidator : delegates
@@ -666,44 +703,58 @@ OrderValidationHandler --> OrderValidator : delegates
 ChartDataValidationHandler --> ChartDataValidator : delegates
 
 ' ============================================
-' DOMAIN LAYER - OPERATIONS (EXPANDED)
+' DOMAIN LAYER - OPERATIONS
 ' ============================================
 OperationRegistry --> IChartOperation : manages
-CastOnOperation ..|> IChartOperation : implements
-AddRowOperation ..|> IChartOperation : implements
-ShortRowOperation ..|> IChartOperation : implements
-PlaceOnHoldOperation ..|> IChartOperation : implements
-PlaceOnNeedleOperation ..|> IChartOperation : implements
-JoinOperation ..|> IChartOperation : implements
+IChartOperation <|.. CastOnOperation
+IChartOperation <|.. AddRowOperation
+IChartOperation <|.. CastOnAdditionalOperation
+IChartOperation <|.. PlaceOnHoldOperation
+IChartOperation <|.. PlaceOnNeedleOperation
+IChartOperation <|.. JoinOperation
 
 CastOnOperation --> ChartSection : operates on
 AddRowOperation --> ChartSection : operates on
-ShortRowOperation --> ChartSection : operates on
+CastOnAdditionalOperation --> ChartSection : operates on
 PlaceOnHoldOperation --> ChartSection : operates on
 PlaceOnNeedleOperation --> ChartSection : operates on
 JoinOperation --> ChartSection : operates on
 
 CastOnOperation ..> PatternContext : uses
 AddRowOperation ..> PatternContext : uses
-ShortRowOperation ..> PatternContext : uses
+CastOnAdditionalOperation ..> PatternContext : uses
 PlaceOnHoldOperation ..> PatternContext : uses
 PlaceOnNeedleOperation ..> PatternContext : uses
 JoinOperation ..> PatternContext : uses
 
 CastOnOperation --> ValidationResult : returns
 AddRowOperation --> ValidationResult : returns
-ShortRowOperation --> ValidationResult : returns
+CastOnAdditionalOperation --> ValidationResult : returns
 PlaceOnHoldOperation --> ValidationResult : returns
 PlaceOnNeedleOperation --> ValidationResult : returns
 JoinOperation --> ValidationResult : returns
 
 ' ============================================
+' INTERFACE IMPLEMENTATIONS
+' ============================================
+ChartRepository ..|> IChartRepository : implements
+MarkerManager ..|> IMarkerProvider : implements
+ChartVisualizationObserver ..|> IChartObserver : implements
+CastOnOperation ..|> IChartOperation : implements
+AddRowOperation ..|> IChartOperation : implements
+CastOnAdditionalOperation ..|> IChartOperation : implements
+PlaceOnHoldOperation ..|> IChartOperation : implements
+PlaceOnNeedleOperation ..|> IChartOperation : implements
+JoinOperation ..|> IChartOperation : implements
+
+' ============================================
 ' DATA LAYER RELATIONSHIPS
 ' ============================================
+IChartRepository <|.. ChartRepository
 ChartRepository --> ChartData : stores/loads
-ChartRepository ..|> IChartRepository : implements
 ChartRepository --> ChartDataValidator : uses
 ChartRepository --> ChartDataSerializer : uses
+ChartRepository --> ViewModelMapper : uses
 ChartDataValidator --> ValidationResult : returns
 ChartDataValidator --> ChartData : validates
 ChartDataValidator --> Node : validates
@@ -739,4 +790,3 @@ note right of "Data Layer"
 end note
 
 @enduml
-

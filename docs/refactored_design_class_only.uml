@@ -1,0 +1,486 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam componentStyle rectangle
+skinparam maxMessageSize 60
+skinparam maxClassSize 60
+skinparam maxwidth 50000
+skinparam maxheight 50000
+skinparam dpi 300
+skinparam shadowing false
+skinparam wrapWidth 200
+
+package "Presentation Layer" {
+    class ChartViewModel {
+        + name: str
+        + nodes: List<NodeViewModel>
+        + links: List<LinkViewModel>
+    }
+    
+    class NodeViewModel {
+        + id: str
+        + type: str
+        + x: float
+        + y: float
+        + row: int
+    }
+    
+    class LinkViewModel {
+        + source_id: str
+        + target_id: str
+    }
+
+    class ChartVisualizationObserver {
+    }
+
+    class ChartVisualizationService {
+    }
+    
+    class ViewModelMapper {
+    }
+}
+
+package "Domain Layer" {
+    ' Services
+    class ChartService {
+    }
+    
+    interface IChartRepository
+    
+    class PatternProcessor {
+    }
+    
+    class ChartSectionFactory {
+    }
+    
+   class ChartSection {
+      - name: str
+      - start_side: str
+      - observers: List[IChartObserver]
+      - row_manager: RowManager
+      - node_manager: NodeManager
+      - link_manager: LinkManager
+      - position_calculator: PositionCalculator
+      - marker_manager: MarkerManager
+      - pattern_parser: PatternParser
+      - chart_generator: ChartGenerator
+      - chart_queries: ChartQueries
+      - operation_registry: OperationRegistry
+      - stitch_counter: StitchCounter
+      - validator: StitchCountValidator
+      - validation_chain: Optional[ValidationHandler]
+   }
+
+   class ChartQueries {
+      - chart: ChartSection
+   }
+
+   class ChartGenerator {
+      - position_calculator: PositionCalculator
+   }
+
+   class PlaceOnHoldOperation {
+   }
+
+   class PlaceOnNeedleOperation {
+   }
+
+   class JoinOperation {
+   }
+
+   class CastOnOperation {
+   }
+
+   class AddRowOperation {
+   }
+
+   class CastOnAdditionalOperation {
+   }
+
+    interface IMarkerProvider
+    
+    class PatternParser {
+      - CONSUME_PRODUCE: Dict[str, Tuple[int, int]]
+      - marker_provider: IMarkerProvider
+    }
+    
+    class RowManager {
+        - rows: List[List[str]]
+        - start_side: str
+        - last_row_side: str
+    }
+    
+    class NodeManager {
+        - nodes: List[Node]
+        - node_counter: int
+        - last_row_stitches: List[Node]
+        - last_row_unconsumed_stitches: List[Node]
+        - stitches_on_hold: List[Node]
+        - last_row_produced: int
+    }
+    
+    class LinkManager {
+        - links: List[Link]
+    }
+    
+    class PositionCalculator {
+        - DEFAULT_SPACING: float
+        - ROW_HEIGHT: float
+        - BASE_Y_OFFSET: float
+    }
+    
+    class MarkerManager {
+        - markers_rs: List[int]
+        - markers_ws: List[int]
+    }
+
+    abstract class ValidationHandler {
+        - _next_handler: Optional[ValidationHandler]
+    }
+    
+    class ValidationRequest {
+        + chart: ChartSection
+        + pattern: Optional[str]
+        + nodes: Optional[List[Node]]
+        + links: Optional[List[Link]]
+        + operation: Optional[str]
+        + context: Optional[PatternContext]
+        + consumed: Optional[int]
+        + produced: Optional[int]
+    }
+
+    class StitchCountValidationHandler extends ValidationHandler {
+      - validator: StitchCountValidator
+    }
+
+   class PatternValidationHandler extends ValidationHandler {
+      - validator: PatternValidator
+   }
+
+   class OrderValidationHandler extends ValidationHandler {
+      - validator: OrderValidator
+   }
+
+    class ChartDataValidationHandler extends ValidationHandler {
+        - _validator: ChartDataValidator
+    }
+    
+    class ValidationResult {
+        + is_valid: bool
+        + errors: List[str]
+    }
+
+    class StitchCounter {
+      - current_count: int
+      - history: List[StitchCountEvent]
+   }
+
+   class StitchCountValidator {
+    }
+
+    class PatternValidator {
+    }
+
+    class OrderValidator {
+    }
+
+    interface IChartOperation
+    
+    class OperationRegistry {
+        - _operations: Dict[str, IChartOperation]
+    }
+
+    class ValidationChainBuilder {
+         - _first_handler: Optional[ValidationHandler]
+         - _last_handler: Optional[ValidationHandler]
+    }
+}
+
+package "Data Layer" {
+    class ChartData {
+        + name: str
+        + nodes: List[Node]
+        + links: List[Link]
+    }
+
+    class ChartDataSerializer {
+    }
+    
+    class Node {
+        + id: str
+        + type: str
+        + row: int
+        + fx: float
+        + fy: float
+    }
+    
+    class Link {
+        + source: str
+        + target: str
+    }
+    
+    class ChartConfig {
+        + name: str
+        + start_side: str
+        + sts: int
+        + rows: int
+    }
+
+    class ChartRepository {
+        - data_path: Path
+        - validator: ChartDataValidator
+        - serializer: ChartDataSerializer
+        - view_model_mapper: ViewModelMapper
+    }
+    
+    class ChartDataValidator {
+    }
+    
+    class PatternContext {
+        + available_stitches: int
+        + side: str
+        + markers: List[int]
+        + last_row_side: str
+        + is_round: bool
+    }
+    
+    class ExpandedPattern {
+        + stitches: List[str]
+        + consumed: int
+        + produced: int
+        + markers: List[int]
+    }
+
+    interface IChartObserver
+    
+    class ChartStateEvent {
+        + event_type: str
+        + chart: Any
+        + data: Dict[str, Any]
+        + timestamp: datetime
+    }
+
+    class StitchCountEvent {
+        + operation: str
+        + consumed: int
+        + produced: int
+        + old_count: int
+        + new_count: int
+        + timestamp: Optional[datetime]
+    }
+
+    class GenerationContext {
+        + row: List[str]
+        + side: str
+        + row_num: int
+        + previous_stitches: List[Node]
+        + is_round: bool
+    }
+}
+
+' ============================================
+' INTERFACE IMPLEMENTATIONS
+' ============================================
+IChartRepository <|.. ChartRepository
+IMarkerProvider <|.. MarkerManager
+IChartObserver <|.. ChartVisualizationObserver
+IChartOperation <|.. CastOnOperation
+IChartOperation <|.. AddRowOperation
+IChartOperation <|.. CastOnAdditionalOperation
+IChartOperation <|.. PlaceOnHoldOperation
+IChartOperation <|.. PlaceOnNeedleOperation
+IChartOperation <|.. JoinOperation
+
+' ============================================
+' PRESENTATION LAYER RELATIONSHIPS
+' ============================================
+ViewModelMapper --> ChartData : converts from
+ViewModelMapper --> Node : converts from
+ViewModelMapper --> Link : converts from
+ChartViewModel *-- NodeViewModel : contains
+ChartViewModel *-- LinkViewModel : contains
+ChartVisualizationService --> ChartService : uses
+ChartVisualizationObserver --> ViewModelMapper : uses
+ChartVisualizationObserver --> ChartDataSerializer : uses
+ChartVisualizationObserver --> ChartSection : observes
+
+' ============================================
+' DOMAIN LAYER - OBSERVER PATTERN
+' ============================================
+ChartSection --> IChartObserver : notifies
+ChartVisualizationObserver --> ChartSection : observes
+ChartVisualizationObserver ..> ChartStateEvent : uses
+
+' ============================================
+' DOMAIN LAYER - SERVICE & FACTORY
+' ============================================
+ChartService --> IChartRepository : uses
+ChartService --> PatternProcessor : uses
+ChartService --> ChartSectionFactory : uses
+ChartService --> ChartDataSerializer : uses
+ChartService --> ChartConfig : uses
+ChartService --> ValidationHandler : uses
+
+ChartSectionFactory --> ChartSection : creates
+ChartSectionFactory --> StitchCounter : creates
+ChartSectionFactory --> StitchCountValidator : creates
+ChartSectionFactory --> RowManager : creates
+ChartSectionFactory --> NodeManager : creates
+ChartSectionFactory --> LinkManager : creates
+ChartSectionFactory --> PositionCalculator : creates
+ChartSectionFactory --> MarkerManager : creates
+ChartSectionFactory --> PatternParser : creates
+ChartSectionFactory --> ChartGenerator : creates
+ChartSectionFactory --> ChartQueries : creates
+ChartSectionFactory --> OperationRegistry : creates
+ChartSectionFactory --> ChartConfig : uses
+ChartSectionFactory --> ValidationHandler : creates
+ChartSectionFactory ..> IMarkerProvider : uses
+
+' ============================================
+' DOMAIN LAYER - CHART SECTION COMPOSITION
+' ============================================
+ChartSection *-- RowManager : composition
+ChartSection *-- NodeManager : composition
+ChartSection *-- LinkManager : composition
+ChartSection *-- PositionCalculator : composition
+ChartSection *-- MarkerManager : composition
+ChartSection *-- PatternParser : composition
+ChartSection *-- StitchCounter : composition
+ChartSection *-- StitchCountValidator : composition
+ChartSection --> ChartGenerator : uses
+ChartSection --> ChartQueries : uses
+ChartSection --> OperationRegistry : uses
+ChartSection --> ValidationHandler : uses
+
+' ============================================
+' DOMAIN LAYER - CHART QUERIES
+' ============================================
+ChartQueries --> ChartSection : queries
+ChartQueries --> NodeManager : queries\n(via ChartSection)
+ChartQueries --> MarkerManager : queries\n(via ChartSection)
+ChartQueries --> RowManager : queries\n(via ChartSection)
+
+' ============================================
+' DOMAIN LAYER - CHART GENERATOR
+' ============================================
+ChartGenerator --> ChartSection : operates on
+ChartGenerator --> NodeManager : creates nodes\n(via ChartSection)
+ChartGenerator --> LinkManager : creates links\n(via ChartSection)
+ChartGenerator --> PositionCalculator : uses\n(via ChartSection)
+ChartGenerator --> Node : creates
+ChartGenerator --> Link : creates
+ChartGenerator ..> GenerationContext : uses
+
+' ============================================
+' DOMAIN LAYER - PROCESSOR
+' ============================================
+PatternProcessor --> PatternParser : uses
+PatternProcessor --> PatternValidator : uses
+PatternProcessor ..> PatternContext : uses
+PatternProcessor --> ExpandedPattern : returns
+
+' ============================================
+' DOMAIN LAYER - PARSER & MARKER
+' ============================================
+PatternParser ..> IMarkerProvider : uses
+
+' ============================================
+' DOMAIN LAYER - POSITION CALCULATOR
+' ============================================
+PositionCalculator --> LinkManager : uses
+PositionCalculator ..> NodeManager : uses
+
+' ============================================
+' DOMAIN LAYER - VALIDATORS
+' ============================================
+ValidationHandler <|-- StitchCountValidationHandler
+ValidationHandler <|-- PatternValidationHandler
+ValidationHandler <|-- OrderValidationHandler
+ValidationHandler <|-- ChartDataValidationHandler
+ValidationHandler --> ValidationHandler : next
+ValidationHandler --> ValidationRequest : uses
+ValidationHandler --> ValidationResult : returns
+
+ValidationChainBuilder --> ValidationHandler : builds
+ValidationChainBuilder --> StitchCountValidationHandler : creates
+ValidationChainBuilder --> PatternValidationHandler : creates
+ValidationChainBuilder --> OrderValidationHandler : creates
+ValidationChainBuilder --> ChartDataValidationHandler : creates
+
+ChartService --> ValidationHandler : uses
+ChartSection --> ValidationHandler : uses
+StitchCountValidationHandler --> StitchCountValidator : delegates
+PatternValidationHandler --> PatternValidator : delegates
+OrderValidationHandler --> OrderValidator : delegates
+ChartDataValidationHandler --> ChartDataValidator : delegates
+
+' ============================================
+' DOMAIN LAYER - OPERATIONS
+' ============================================
+OperationRegistry --> IChartOperation : manages
+
+CastOnOperation --> ChartSection : operates on
+AddRowOperation --> ChartSection : operates on
+CastOnAdditionalOperation --> ChartSection : operates on
+PlaceOnHoldOperation --> ChartSection : operates on
+PlaceOnNeedleOperation --> ChartSection : operates on
+JoinOperation --> ChartSection : operates on
+
+CastOnOperation ..> PatternContext : uses
+AddRowOperation ..> PatternContext : uses
+CastOnAdditionalOperation ..> PatternContext : uses
+PlaceOnHoldOperation ..> PatternContext : uses
+PlaceOnNeedleOperation ..> PatternContext : uses
+JoinOperation ..> PatternContext : uses
+
+CastOnOperation --> ValidationResult : returns
+AddRowOperation --> ValidationResult : returns
+CastOnAdditionalOperation --> ValidationResult : returns
+PlaceOnHoldOperation --> ValidationResult : returns
+PlaceOnNeedleOperation --> ValidationResult : returns
+JoinOperation --> ValidationResult : returns
+
+' ============================================
+' DATA LAYER RELATIONSHIPS
+' ============================================
+ChartRepository --> ChartData : stores/loads
+ChartRepository --> ChartDataValidator : uses
+ChartRepository --> ChartDataSerializer : uses
+ChartRepository --> ViewModelMapper : uses
+ChartDataValidator --> ValidationResult : returns
+ChartDataValidator --> ChartData : validates
+ChartDataValidator --> Node : validates
+ChartDataValidator --> Link : validates
+ChartDataSerializer --> ChartSection : serializes
+ChartDataSerializer --> ChartData : creates
+ChartDataSerializer --> Node : orders
+ChartDataSerializer --> Link : orders
+
+note right of "Presentation Layer"
+  **Responsibilities:**
+  - User interface rendering
+  - User interaction handling
+  - Visualization display
+  - No business logic
+end note
+
+note right of "Domain Layer"
+  **Responsibilities:**
+  - Pattern processing
+  - Chart generation logic
+  - Coordinate managers
+  - Business rules
+  - No UI or data persistence
+end note
+
+note right of "Data Layer"
+  **Responsibilities:**
+  - Data models/structures
+  - Data persistence (JSON)
+  - Data access
+  - No business logic
+end note
+
+@enduml
+
