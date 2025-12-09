@@ -57,11 +57,15 @@ class ChartSection:
         self.validator = validator
         self.validation_chain = validation_chain
         
-        # ChartQueries needs ChartSection, so create it after self is initialized
+        # ChartQueries now only needs managers, no circular dependency
         if chart_queries is not None:
             self.chart_queries = chart_queries
         else:
-            self.chart_queries = ChartQueries(self)
+            self.chart_queries = ChartQueries(
+                node_manager=self.node_manager,
+                row_manager=self.row_manager,
+                marker_manager=self.marker_manager
+            )
             
     # Observer management
     def attach(self, observer: IChartObserver) -> None:

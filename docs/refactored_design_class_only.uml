@@ -72,7 +72,9 @@ package "Domain Layer" {
    }
 
    class ChartQueries {
-      - chart: ChartSection
+      - _node_manager: NodeManager
+      - _row_manager: RowManager
+      - _marker_manager: MarkerManager
    }
 
    class ChartGenerator {
@@ -331,7 +333,10 @@ ChartSectionFactory --> PositionCalculator : creates
 ChartSectionFactory --> MarkerManager : creates
 ChartSectionFactory --> PatternParser : creates
 ChartSectionFactory --> ChartGenerator : creates
-ChartSectionFactory --> ChartQueries : creates
+ChartSectionFactory --> ChartQueries : creates\n(with managers)
+ChartSectionFactory --> NodeManager : provides to\nChartQueries
+ChartSectionFactory --> RowManager : provides to\nChartQueries
+ChartSectionFactory --> MarkerManager : provides to\nChartQueries
 ChartSectionFactory --> OperationRegistry : creates
 ChartSectionFactory --> ChartConfig : uses
 ChartSectionFactory --> ValidationHandler : creates
@@ -356,10 +361,9 @@ ChartSection --> ValidationHandler : uses
 ' ============================================
 ' DOMAIN LAYER - CHART QUERIES
 ' ============================================
-ChartQueries --> ChartSection : queries
-ChartQueries --> NodeManager : queries\n(via ChartSection)
-ChartQueries --> MarkerManager : queries\n(via ChartSection)
-ChartQueries --> RowManager : queries\n(via ChartSection)
+ChartQueries *-- NodeManager : composition
+ChartQueries *-- RowManager : composition
+ChartQueries *-- MarkerManager : composition
 
 ' ============================================
 ' DOMAIN LAYER - CHART GENERATOR

@@ -74,13 +74,15 @@ class ChartSectionFactory:
         
         # Create new refactored components
         chart_generator = self._create_chart_generator(position_calculator)
-        chart_queries = None  # Will be created after ChartSection
         operation_registry = self._create_operation_registry()
         
         # Create validators and counters
         stitch_counter = self._create_stitch_counter()
         validator = self._create_validator()
         validation_chain = self._create_validation_chain()
+        
+        # ChartQueries can now be created before ChartSection since it doesn't need it
+        chart_queries = self._create_chart_queries(node_manager, row_manager, marker_manager)
         
         # Create ChartSection with dependency injection
         chart_section = ChartSection(
@@ -96,12 +98,9 @@ class ChartSectionFactory:
             operation_registry=operation_registry,
             stitch_counter=stitch_counter,
             validator=validator,
-            validation_chain=validation_chain
+            validation_chain=validation_chain,
+            chart_queries=chart_queries
         )
-        
-        # ChartQueries needs ChartSection, so create it after and set it
-        chart_queries = self._create_chart_queries(chart_section)
-        chart_section.chart_queries = chart_queries
         
         return chart_section
     
@@ -170,9 +169,18 @@ class ChartSectionFactory:
         """Create a ChartGenerator instance."""
         return ChartGenerator(position_calculator=position_calculator)
     
-    def _create_chart_queries(self, chart: ChartSection) -> ChartQueries:
+    def _create_chart_queries(
+        self,
+        node_manager: NodeManager,
+        row_manager: RowManager,
+        marker_manager: MarkerManager
+    ) -> ChartQueries:
         """Create a ChartQueries instance."""
-        return ChartQueries(chart)
+        return ChartQueries(
+            node_manager=node_manager,
+            row_manager=row_manager,
+            marker_manager=marker_manager
+        )
     
     def _create_operation_registry(self) -> OperationRegistry:
         """Create and configure an OperationRegistry with all operations."""

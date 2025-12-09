@@ -117,7 +117,7 @@ package "Domain Layer" {
         - _create_marker_manager(): MarkerManager
         - _create_pattern_parser(marker_manager: MarkerManager): PatternParser
         - _create_chart_generator(position_calculator: PositionCalculator): ChartGenerator
-        - _create_chart_queries(chart: ChartSection): ChartQueries
+        - _create_chart_queries(node_manager: NodeManager, row_manager: RowManager, marker_manager: MarkerManager): ChartQueries
         - _create_operation_registry(): OperationRegistry
     }
     
@@ -183,7 +183,9 @@ package "Domain Layer" {
    }
 
    class ChartQueries {
-      - chart: ChartSection
+      - _node_manager: NodeManager
+      - _row_manager: RowManager
+      - _marker_manager: MarkerManager
       --
       + get_current_num_of_stitches(): int
       + get_current_row_num(): int
@@ -618,7 +620,10 @@ ChartSectionFactory --> PositionCalculator : creates
 ChartSectionFactory --> MarkerManager : creates
 ChartSectionFactory --> PatternParser : creates
 ChartSectionFactory --> ChartGenerator : creates
-ChartSectionFactory --> ChartQueries : creates
+ChartSectionFactory --> ChartQueries : creates\n(with managers)
+ChartSectionFactory --> NodeManager : provides to\nChartQueries
+ChartSectionFactory --> RowManager : provides to\nChartQueries
+ChartSectionFactory --> MarkerManager : provides to\nChartQueries
 ChartSectionFactory --> OperationRegistry : creates
 ChartSectionFactory --> ChartConfig : uses
 ChartSectionFactory --> ValidationHandler : creates
@@ -643,10 +648,9 @@ ChartSection --> ValidationHandler : uses
 ' ============================================
 ' DOMAIN LAYER - CHART QUERIES
 ' ============================================
-ChartQueries --> ChartSection : queries
-ChartQueries --> NodeManager : queries\n(via ChartSection)
-ChartQueries --> MarkerManager : queries\n(via ChartSection)
-ChartQueries --> RowManager : queries\n(via ChartSection)
+ChartQueries *-- NodeManager : composition
+ChartQueries *-- RowManager : composition
+ChartQueries *-- MarkerManager : composition
 
 ' ============================================
 ' DOMAIN LAYER - CHART GENERATOR
