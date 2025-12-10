@@ -3,6 +3,7 @@
 A layered architecture application that generates visual representations of knitting patterns by parsing pattern instructions and creating interactive charts.
 
 ## Contributors
+
 Diana Whealan
 
 ## Architecture
@@ -13,7 +14,7 @@ This project follows a **3-layer architecture**:
 - **Domain Layer**: Business logic, pattern processing, chart generation, and validation
 - **Data Layer**: Data models, persistence, and serialization
 
-See `docs/refactored_design.uml` for the complete architecture diagram.
+See `docs/refactored_design.uml` for the complete architecture diagram. Additional design documentation is available in `docs/design/`.
 
 ## Dependencies
 
@@ -22,10 +23,12 @@ See `docs/refactored_design.uml` for the complete architecture diagram.
 - **JavaScript**: D3.js (for visualization in HTML)
 
 ## Project Structure
-project-20252601-diana_final_project/
+
+project-20252601-diana*final_project/
 ├── engine/ # Main application code
 │ ├── main.py # Application entry point
 │ ├── chart_section.py # Core chart orchestration class
+│ ├── run_all_tests.py # Test runner for all test files
 │ ├── domain/ # Domain layer (business logic)
 │ │ ├── factories/ # Factory pattern implementations
 │ │ ├── interfaces/ # Interface definitions
@@ -42,20 +45,21 @@ project-20252601-diana_final_project/
 │ │ ├── mappers/ # ViewModel mappers
 │ │ ├── observers/ # Observer pattern implementations
 │ │ └── services/ # Presentation services
-│ └── test_.py # Test files
+│ └── test*\*.py # Test files (see Running Tests section)
 ├── presentation/ # Frontend visualization
-│ └── visualizaion.html # Interactive D3.js visualizer
-│ └── test_.html # Test files
+│ ├── visualizaion.html # Interactive D3.js visualizer (note: filename has typo)
+│ ├── test_view_models.html # Test files for view models
+│ └── test_view_models_e2e.html # End-to-end test files
 └── docs/ # Documentation
-└── refactored_design.uml # Architecture diagram
-
+├── refactored_design.uml # Architecture diagram
+└── design/ # Additional design documentation
 
 ## Design Patterns
 
 The project implements several design patterns:
 
 - **Factory Pattern**: `ChartSectionFactory` creates and wires all dependencies
-- **Command Pattern**: Operations (`CastOnOperation`, `AddRowOperation`, etc.) encapsulate chart operations
+- **Command Pattern**: Operations (`CastOnOperation`, `AddRowOperation`, `JoinOperation`, `PlaceOnHoldOperation`, `PlaceOnNeedleOperation`, etc.) encapsulate chart operations
 - **Chain of Responsibility**: Validation handlers process validation requests in sequence
 - **Observer Pattern**: `ChartVisualizationObserver` updates visualization on chart state changes
 - **Builder Pattern**: `ValidationChainBuilder` constructs validation chains
@@ -66,8 +70,11 @@ The project implements several design patterns:
 1. **Clone the repository**
 2. **Navigate to the project directory**
 3. **Run the application**:
+   ```bash
    python engine/main.py
+   ```
    This will:
+
 - Create chart sections using `ChartService`
 - Process knitting patterns
 - Export JSON data to `engine/charts.json` and individual chart files
@@ -75,12 +82,14 @@ The project implements several design patterns:
 ## Code Entry Points
 
 ### Main Application
+
 - **`engine/main.py`** - Main script that uses `ChartService` to create charts, process patterns, and export JSON data
 
 ### Example Usage
 
 The refactored code uses the service layer and factory pattern:
 
+```python
 from engine.domain.services.chart_service import ChartService
 from engine.data.repositories.chart_repository import ChartRepository
 
@@ -98,24 +107,41 @@ raglan.add_round("bo4, repeat(k1), rm").place_on_hold()
 # ... additional pattern instructions ...
 
 # Save charts
-chart_service.save_charts([raglan])**Note**: `ChartSection` should be created through `ChartService` (which uses `ChartSectionFactory`). Direct instantiation is not supported in the refactored architecture.
+chart_service.save_charts([raglan])
+```
+
+**Note**: `ChartSection` should be created through `ChartService` (which uses `ChartSectionFactory`). Direct instantiation is not supported in the refactored architecture.
 
 ## Running Tests
 
 Run all tests:
-python engine/run_all_tests.pyIndividual test files:
+
+```bash
+python engine/run_all_tests.py
+```
+
+Individual test files:
+
 - `test_factory.py` - Tests factory pattern
 - `test_refactored_chart_section.py` - Tests refactored ChartSection
 - `test_service_integration.py` - Tests service layer
+- `test_chart_service_complete.py` - Tests complete chart service functionality
 - `test_validation_infrastructure.py` - Tests validation system
 - `test_pattern_processor.py` - Tests pattern processing
+- `test_pattern_parser_refactor.py` - Tests pattern parser refactoring
 - `test_view_models.py` - Tests presentation layer
+
+Additional test files:
+
+- `test_large_pattern_stitch_counts.py` - Tests stitch counting for large patterns
+- `test_repeat_fix.py` - Tests repeat pattern fixes
 
 ## JSON Export Location
 
 The application exports JSON data in two formats:
 
 1. **Master file**: `engine/charts.json`
+
    - Contains all chart sections in a single file
    - Uses ViewModels for presentation layer compatibility
    - Structure: `{"charts": [{"name": "...", "nodes": [...], "links": [...]}, ...]}`
@@ -139,6 +165,7 @@ To use the visualizer:
 3. The visualizer will automatically load `engine/charts.json`
 
 The visualizer provides:
+
 - Interactive tabbed interface for multiple charts
 - SVG rendering of knitting patterns with color-coded stitch types:
   - Blue (`k`) - Knit stitches
@@ -151,23 +178,43 @@ The visualizer provides:
 ## Key Components
 
 ### Service Layer
+
 - **`ChartService`**: Main service for chart operations
 - **`ChartVisualizationService`**: Service for visualization concerns
 
 ### Domain Layer
+
 - **`ChartSection`**: Core chart orchestration (uses dependency injection)
 - **`PatternProcessor`**: Processes and validates patterns
+- **`PatternParser`**: Parses pattern instructions
 - **`ChartGenerator`**: Generates nodes and links
 - **`ChartQueries`**: Query interface for chart data
 - **`OperationRegistry`**: Manages chart operations (Command pattern)
 - **`ValidationHandler`**: Chain of Responsibility for validation
+- **`NodeManager`**: Manages chart nodes
+- **`LinkManager`**: Manages chart links
+- **`RowManager`**: Manages chart rows
+- **`MarkerManager`**: Manages stitch markers
+- **`StitchCounter`**: Tracks stitch counts
+- **`PositionCalculator`**: Calculates stitch positions
+
+#### Operations (Command Pattern)
+
+- **`CastOnOperation`**: Cast-on operations
+- **`CastOnAdditionalOperation`**: Additional cast-on operations
+- **`AddRowOperation`**: Add row operations
+- **`JoinOperation`**: Join chart operations
+- **`PlaceOnHoldOperation`**: Place stitches on hold
+- **`PlaceOnNeedleOperation`**: Place stitches back on needle
 
 ### Data Layer
+
 - **`ChartRepository`**: Persists and loads chart data
 - **`ChartDataSerializer`**: Serializes charts with deterministic ordering
 - **`ChartDataValidator`**: Validates chart data structure
 
 ### Presentation Layer
+
 - **`ChartViewModel`**, **`NodeViewModel`**, **`LinkViewModel`**: Presentation models
 - **`ViewModelMapper`**: Maps domain/data models to view models
 - **`ChartVisualizationObserver`**: Observer for real-time visualization updates
@@ -175,5 +222,6 @@ The visualizer provides:
 ## Future Work
 
 The following components are planned for future implementation:
+
 - `ShortRowOperation` - Operation for short row patterns
 - `IBodyFormTemplate` & `BodyFormTemplateRenderer` - Body form template system
