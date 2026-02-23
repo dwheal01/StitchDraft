@@ -1,0 +1,4 @@
+# No external dependencies - pure Python implementation
+# This library requires Python 3.8 or higher
+
+

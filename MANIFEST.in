@@ -1,0 +1,6 @@
+include README.md
+include LICENSE
+recursive-include docs *.md *.png *.svg *.uml
+recursive-include presentation *.html
+
+
