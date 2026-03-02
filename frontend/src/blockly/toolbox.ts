@@ -28,6 +28,21 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
           kind: 'block',
           type: BlockTypes.ADD_ROW,
         },
+        {
+          kind: 'block',
+          type: BlockTypes.REPEAT_ROWS,
+        },
+      ],
+    },
+    {
+      kind: 'category',
+      name: 'Patterns',
+      colour: '65',
+      contents: [
+        {
+          kind: 'block',
+          type: BlockTypes.PATTERN_ROW,
+        },
       ],
     },
   ],
