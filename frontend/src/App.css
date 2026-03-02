@@ -1,0 +1,106 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.title__name {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.title__subtitle {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.copyStatus {
+  font-size: 12px;
+  opacity: 0.85;
+  min-width: 140px;
+}
+
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 12px;
+  padding: 12px;
+  min-height: 0;
+}
+
+.panel {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.panel--workspace {
+  display: flex;
+}
+
+.panel--ir {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.panel__title {
+  font-weight: 650;
+}
+
+.panel__meta {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.errors {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 80, 80, 0.1);
+}
+
+.errors__title {
+  font-weight: 650;
+  margin-bottom: 6px;
+}
+
+.errors__list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.code {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.4;
+}

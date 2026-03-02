@@ -1,0 +1,62 @@
+import type * as Blockly from 'blockly/core'
+import { IR_VERSION, type ChartProgram, type KnittingIR, type StartSide } from '../ir/types'
+import { BlockTypes } from './registerBlocks'
+
+export type CompileResult = {
+  ir: KnittingIR
+  errors: string[]
+}
+
+function asNumber(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+export function compileWorkspaceToIr(workspace: Blockly.Workspace): CompileResult {
+  const errors: string[] = []
+
+  const topBlocks = workspace.getTopBlocks(true)
+  const chartBlocks = topBlocks.filter((b) => b.type === BlockTypes.CHART)
+
+  if (chartBlocks.length === 0) {
+    errors.push('Add a “Chart” block to generate IR.')
+  }
+
+  const charts: ChartProgram[] = chartBlocks.map((chartBlock) => {
+    const name = String(chartBlock.getFieldValue('NAME') ?? '').trim() || 'chart'
+    const start_side = (chartBlock.getFieldValue('START_SIDE') ?? 'RS') as StartSide
+    const sts = asNumber(chartBlock.getFieldValue('STS'))
+    const rows = asNumber(chartBlock.getFieldValue('ROWS'))
+
+    const commands: ChartProgram['commands'] = []
+    let cmd = chartBlock.getInputTargetBlock('COMMANDS')
+    while (cmd) {
+      switch (cmd.type) {
+        case BlockTypes.CAST_ON_START: {
+          const count = asNumber(cmd.getFieldValue('COUNT'))
+          commands.push({ op: 'cast_on_start', count } as const)
+          break
+        }
+        case BlockTypes.ADD_ROW: {
+          const pattern = String(cmd.getFieldValue('PATTERN') ?? '').trim()
+          commands.push({ op: 'add_row', pattern } as const)
+          break
+        }
+        default:
+          errors.push(`Unsupported command block: ${cmd.type}`)
+      }
+      cmd = cmd.getNextBlock()
+    }
+
+    return { name, start_side, sts, rows, commands }
+  })
+
+  return {
+    ir: {
+      version: IR_VERSION,
+      charts,
+    },
+    errors,
+  }
+}
+
