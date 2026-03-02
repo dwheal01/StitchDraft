@@ -15,6 +15,17 @@ export type PreviewResponse = {
     errors: Array<{ commandIndex: number; message: string }>
     currentStitchCount: number
     lastRowSide: 'RS' | 'WS' | null
+    nodes: Array<{
+      id: string
+      type: string
+      x: number
+      y: number
+      row: number
+    }>
+    links: Array<{
+      source: string
+      target: string
+    }>
   }>
 }
 

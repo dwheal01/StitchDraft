@@ -5,6 +5,7 @@ import { fetchPreview } from './api/client'
 import type { KnittingIR } from './ir/types'
 import { BlocklyWorkspace } from './components/BlocklyWorkspace'
 import { ChartCanvas } from './components/ChartCanvas'
+import { NodeLinkView } from './components/NodeLinkView'
 
 function App() {
   const [compiled, setCompiled] = useState<KnittingIR | null>(null)
@@ -151,6 +152,8 @@ function App() {
                         Markers RS: {c.markers.RS.join(', ') || '—'} | WS: {c.markers.WS.join(', ') || '—'}
                       </div>
                       <ChartCanvas rows={c.rows} />
+                      <div className="preview__rowMeta">Node–link view</div>
+                      <NodeLinkView nodes={c.nodes} links={c.links} />
                     </div>
                     <div className="preview__small">
                       <div className="preview__rowMeta">First 5 rows (tokens)</div>
