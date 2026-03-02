@@ -4,6 +4,7 @@ import type { PreviewResponse } from './api/client'
 import { fetchPreview } from './api/client'
 import type { KnittingIR } from './ir/types'
 import { BlocklyWorkspace } from './components/BlocklyWorkspace'
+import { ChartCanvas } from './components/ChartCanvas'
 
 function App() {
   const [compiled, setCompiled] = useState<KnittingIR | null>(null)
@@ -144,18 +145,23 @@ function App() {
                     </div>
                   ) : null}
 
-                  <div className="preview__small">
-                    <div className="preview__rowMeta">
-                      Markers RS: {c.markers.RS.join(', ') || '—'} | WS: {c.markers.WS.join(', ') || '—'}
+                  <div className="preview__canvasRow">
+                    <div className="preview__canvasCol">
+                      <div className="preview__rowMeta">
+                        Markers RS: {c.markers.RS.join(', ') || '—'} | WS: {c.markers.WS.join(', ') || '—'}
+                      </div>
+                      <ChartCanvas rows={c.rows} />
                     </div>
-                    <div className="preview__rowMeta">Showing first 5 rows (tokens)</div>
-                    <ol className="preview__rows">
-                      {c.rows.slice(0, 5).map((row, idx) => (
-                        <li key={idx}>
-                          <code>{row.join(', ')}</code>
-                        </li>
-                      ))}
-                    </ol>
+                    <div className="preview__small">
+                      <div className="preview__rowMeta">First 5 rows (tokens)</div>
+                      <ol className="preview__rows">
+                        {c.rows.slice(0, 5).map((row, idx) => (
+                          <li key={idx}>
+                            <code>{row.join(', ')}</code>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
                   </div>
                 </div>
               ))}

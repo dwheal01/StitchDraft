@@ -149,3 +149,26 @@
   margin: 0;
   padding-left: 18px;
 }
+
+.preview__canvasRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.preview__canvasCol {
+  flex: 1;
+  min-width: 0;
+}
+
+.chartCanvasWrapper {
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  padding: 6px;
+  background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.18), transparent 55%);
+  overflow: auto;
+}
+
+.chartCanvasWrapper canvas {
+  display: block;
+}
