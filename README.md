@@ -160,9 +160,19 @@ The interactive visualizer is located at:
 
 To use the visualizer:
 
-1. Generate the JSON files by running `engine/main.py`
-2. Open `presentation/visualizaion.html` in a web browser
-3. The visualizer will automatically load `engine/charts.json`
+1. Generate the JSON files by running:
+   ```bash
+   python engine/main.py
+   ```
+2. **Option A – Open file directly**  
+   Open `presentation/visualizaion.html` in a web browser (for example, by double-clicking it in your file manager).
+3. **Option B – Run a local HTTP server**  
+   From the project root, start a simple HTTP server:
+   ```bash
+   python -m http.server 8000
+   ```
+   Then open `http://localhost:8000/presentation/visualizaion.html` in your browser.
+4. The visualizer will automatically load `engine/charts.json`
 
 The visualizer provides:
 
