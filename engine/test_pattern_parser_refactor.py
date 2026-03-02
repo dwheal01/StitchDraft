@@ -130,6 +130,52 @@ def test_factory_creation():
     
     return chart
 
+
+def test_work_est():
+    """Test 'work est' continues pattern by matching right-side appearance."""
+    print("\n=== Testing work est (continue as established) ===")
+
+    marker_manager = MarkerManager()
+    parser = PatternParser(marker_provider=marker_manager)
+    # Previous row [k,k,p,p,k]: if that row was RS, RS appearance is same; if it was WS, RS appearance is flip
+    last_row = ["k", "k", "p", "p", "k"]
+
+    # RS: previous row was WS, so RS appearance of last_row is flip → we work that on RS
+    result_rs = parser.expand_pattern("work est", 5, "RS", last_row=last_row, is_round=False)
+    assert result_rs.stitches == ["p", "p", "k", "k", "p"], f"RS work est: got {result_rs.stitches}"
+    print("✓ work est on RS matches RS appearance")
+
+    # WS: previous row was RS, so RS appearance is last_row; we purl to show knit, knit to show purl
+    result_ws = parser.expand_pattern("work est", 5, "WS", last_row=last_row, is_round=False)
+    assert result_ws.stitches == ["p", "p", "k", "k", "p"], f"WS work est: got {result_ws.stitches}"
+    print("✓ work est on WS matches RS appearance")
+
+    # Round: same as previous
+    result_round = parser.expand_pattern("work est", 5, "WS", last_row=last_row, is_round=True)
+    assert result_round.stitches == ["k", "k", "p", "p", "k"], f"Round work est: got {result_round.stitches}"
+    print("✓ work est in round repeats previous row")
+
+    # Explicit count: work est 3 (RS, prev row WS → prev_rs for k,k,p is p,p,k)
+    result_3 = parser.expand_pattern("work est 3", 5, "RS", last_row=last_row, is_round=False)
+    assert result_3.stitches == ["p", "p", "k"], f"work est 3: got {result_3.stitches}"
+    print("✓ work est 3 expands to 3 stitches")
+
+    # Chart integration: add_row with work est completes and preserves stitch count
+    factory = ChartSectionFactory()
+    chart = factory.create_with_defaults(name="work_est_chart", start_side="RS")
+    chart.cast_on_start(6)
+    chart.add_row("k2, p2, k2")
+    chart.add_row("k2, work est, k2")
+    rows = chart.row_manager.get_rows()
+    assert len(rows) >= 2, f"Should have at least 2 pattern rows, got {len(rows)}"
+    assert chart.get_current_num_of_stitches() == 6, "Should still have 6 stitches"
+    work_est_row = rows[-1]
+    assert len(work_est_row) == 6, f"Work est row should have 6 stitches, got {len(work_est_row)}"
+    print("✓ add_row('k2, work est, k2') works on chart")
+
+    print("✓ All work est tests passed")
+
+
 def run_all_tests():
     """Run all PatternParser refactoring tests."""
     print("=" * 60)
@@ -142,6 +188,7 @@ def run_all_tests():
         test_pattern_parser_functionality()
         test_factory_integration()
         test_factory_creation()
+        test_work_est()
         
         print("\n" + "=" * 60)
         print("✓ ALL TESTS PASSED!")

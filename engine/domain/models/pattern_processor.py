@@ -45,10 +45,14 @@ class PatternProcessor:
         Returns:
             ExpandedPattern result
         """
+        last_row = getattr(context, "last_row", None)
+        is_round = getattr(context, "is_round", False)
         expanded = self.pattern_parser.expand_pattern(
             pattern,
             context.available_stitches,
-            context.side
+            context.side,
+            last_row=last_row,
+            is_round=is_round,
         )
         # expanded is already an ExpandedPattern, just return it
         return expanded

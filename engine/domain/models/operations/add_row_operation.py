@@ -22,10 +22,15 @@ class AddRowOperation(IChartOperation):
             produced = len(new_row)
         else:
             side = "WS" if chart.row_manager.is_wrong_side(is_round) else "RS"
+            last_row = None
+            if chart.row_manager.get_row_count() > 0:
+                last_row = chart.row_manager.get_row(chart.row_manager.get_row_count() - 1)
             expanded = chart.pattern_parser.expand_pattern(
-                pattern, 
-                chart.node_manager.get_last_row_produced(), 
-                chart.row_manager.get_last_row_side()
+                pattern,
+                chart.node_manager.get_last_row_produced(),
+                chart.row_manager.get_last_row_side(),
+                last_row=last_row,
+                is_round=is_round,
             )
             new_row = expanded.stitches
             consumed = expanded.consumed

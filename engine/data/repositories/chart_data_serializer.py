@@ -117,9 +117,13 @@ class ChartDataSerializer:
     
     def _node_to_dict(self, node: Node) -> Dict[str, Any]:
         """Convert Node dataclass to dictionary."""
+        # work est / work_est should have been expanded to k/p; sanitize if it slipped through
+        stitch_type = node.type
+        if stitch_type in ("work est", "work_est", "cont as est"):
+            stitch_type = "k"  # fallback when expansion was skipped (e.g. stale bytecode)
         result = {
             "id": node.id,
-            "type": node.type,
+            "type": stitch_type,
             "row": node.row
         }
         # Only include fx/fy if they're not None/0 (for strand nodes)

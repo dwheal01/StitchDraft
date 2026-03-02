@@ -16,6 +16,7 @@ docs/design/requirements.md
 engine/__init__.py
 engine/chart_section.py
 engine/charts.json
+engine/flirt.py
 engine/main.py
 engine/run_all_tests.py
 engine/test_chart_service_complete.py

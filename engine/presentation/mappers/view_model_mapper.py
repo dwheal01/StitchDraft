@@ -23,9 +23,12 @@ class ViewModelMapper:
     
     def to_node_view_model(self, node: Node) -> NodeViewModel:
         """Convert Node to NodeViewModel."""
+        stitch_type = node.type
+        if stitch_type in ("work est", "work_est", "cont as est"):
+            stitch_type = "k"  # fallback when work est was not expanded
         return NodeViewModel(
             id=node.id,
-            type=node.type,
+            type=stitch_type,
             x=node.fx,
             y=node.fy,
             row=node.row

@@ -62,7 +62,22 @@ class PatternValidator:
             ValidationResult indicating if tokens are valid
         """
         errors = []
-        valid_operations = {'k', 'p', 'inc', 'dec', 'bo', 'yo', 'k2tog', 'ssk', 'rm', 'sm'}
+        # Note: tokens like "work est" and "cont as est" normalize to
+        # alphabetic ops "workest" and "contasest" here, so include both.
+        valid_operations = {
+            'k',
+            'p',
+            'inc',
+            'dec',
+            'bo',
+            'yo',
+            'k2tog',
+            'ssk',
+            'rm',
+            'sm',
+            'workest',
+            'contasest',
+        }
         
         for token in tokens:
             # Extract operation name (before any number)

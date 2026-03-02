@@ -1,6 +1,10 @@
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Optional
 from engine.domain.interfaces.imarker_provider import IMarkerProvider
 from engine.data.models.expanded_pattern import ExpandedPattern
+
+# Tokens that mean "work as established" (continue previous row's k/p)
+WORK_EST_ALIASES = ("work est", "work established", "est", "cont as est", "cont as established")
+
 
 class PatternParser:
     """Handles parsing and expansion of knitting patterns."""
@@ -10,11 +14,12 @@ class PatternParser:
         "p": (1, 1),
         "inc": (0, 1),
         "dec": (2, 1),
-        "pm": (0, 0), #place marker
-        "bo": (1, 0), # bind off
-        "rm": (0, 0), # remove marker
-        "co": (0, 1), # cast on
-        "sm": (0, 0) # slip marker
+        "pm": (0, 0),  # place marker
+        "bo": (1, 0),  # bind off
+        "rm": (0, 0),  # remove marker
+        "co": (0, 1),  # cast on
+        "sm": (0, 0),  # slip marker
+        "work_est": (1, 1),
     }
     
     def __init__(self, marker_provider: IMarkerProvider):
@@ -26,7 +31,54 @@ class PatternParser:
         """
         self.marker_provider = marker_provider
     
-    def expand_pattern(self, pattern: str, available_stitches: int, side: str) -> ExpandedPattern:
+    def _normalize_work_est(self, stitch: str) -> str:
+        """Map 'work est', 'work established', 'est' to 'work_est'."""
+        # Collapse all whitespace to single space so "work  est" and unicode spaces match
+        normalized = " ".join(stitch.strip().lower().split())
+        return "work_est" if normalized in WORK_EST_ALIASES else stitch
+    
+    def _consumption_of_tokens(self, tokens: List[str], start_idx: int) -> int:
+        """Total stitches consumed by tokens from start_idx to end (for fill-segment work_est)."""
+        total = 0
+        for idx in range(start_idx, len(tokens)):
+            token = tokens[idx]
+            if token.startswith("repeat(") and token.endswith(")"):
+                continue
+            s, count = self.parse_token(token)
+            s = self._normalize_work_est(s)
+            if s == "pm":
+                continue
+            cons, _ = self.CONSUME_PRODUCE.get(s, (1, 1))
+            total += cons * count
+        return total
+    
+    def _work_est_stitch(self, prev_stitch: str, side: str, is_round: bool) -> str:
+        """Return stitch for 'work as established': match how the fabric looks on the RS.
+        Previous row was worked on the opposite side (RS if we're on WS, WS if we're on RS).
+        - Previous row on RS: what we did (k/p) is what shows on RS.
+        - Previous row on WS: what we did shows as the opposite on RS (purl→knit, knit→purl).
+        So we compute previous_rs_appearance, then work the stitch that reproduces it this row.
+        """
+        if is_round:
+            return prev_stitch  # in the round, always same as previous
+        # Previous row's side is opposite of current
+        prev_was_rs = side == "WS"
+        prev_rs_appearance = prev_stitch if prev_was_rs else ("p" if prev_stitch == "k" else "k")
+        if prev_stitch not in ("k", "p"):
+            return prev_stitch  # inc, dec, bo, etc. unchanged
+        # This row: work the stitch that shows as prev_rs_appearance on the RS
+        if side == "RS":
+            return prev_rs_appearance  # knit to show knit, purl to show purl
+        return "p" if prev_rs_appearance == "k" else "k"  # WS: purl to show knit, knit to show purl
+    
+    def expand_pattern(
+        self,
+        pattern: str,
+        available_stitches: int,
+        side: str,
+        last_row: Optional[List[str]] = None,
+        is_round: bool = False,
+    ) -> ExpandedPattern:
         """Expand a pattern string into stitches."""
         markers = []
         expanded = []
@@ -44,29 +96,62 @@ class PatternParser:
             num_decreases = 0
             repeat_idx = -1
             tokens = self.split_tokens(segment)
-            for j,token in enumerate(tokens):
-                  if token.startswith("repeat(") and token.endswith(")"):
-                     # if there is already a repeat in this segement throw an error
-                     if repeat_idx != -1:
+            for j, token in enumerate(tokens):
+                if token.startswith("repeat(") and token.endswith(")"):
+                    if repeat_idx != -1:
                         raise ValueError(f"Repeat found in segment {i} ('{segment}') more than once")
-                     repeat_idx = j
-                     leading_sts = produced + bind_off_count
-                  else:
-                     s, count = self.parse_token(token)
-                     if s == "inc":
-                        num_increases += count
-                     elif s == "dec":
-                        num_decreases += count
-                     if s == "pm":
-                        for _ in range(max(count, 1)):
-                              markers.append(produced)
+                    repeat_idx = j
+                    leading_sts = produced + bind_off_count
+                else:
+                    s, count = self.parse_token(token)
+                    s = self._normalize_work_est(s)
+                    if s == "work_est":
+                        if last_row is None or len(last_row) == 0:
+                            raise ValueError("'work est' requires a previous row")
+                        # Fill segment when token is "work est" or "est" with no number
+                        token_lower = token.strip().lower()
+                        if count == 1 and token_lower in WORK_EST_ALIASES:
+                            rest_consumption = self._consumption_of_tokens(tokens, j + 1)
+                            count = noted_markers[i] - consumed - rest_consumption
+                            count = max(0, min(count, len(last_row) - consumed))
+                        for _ in range(count):
+                            if consumed >= len(last_row):
+                                raise ValueError(
+                                    f"'work est' ran out of previous row "
+                                    f"(consumed={consumed}, last_row_len={len(last_row)})"
+                                )
+                            prev = last_row[consumed]
+                            st = self._work_est_stitch(prev, side, is_round)
+                            cons, prod = self.CONSUME_PRODUCE["work_est"]
+                            if consumed + cons > noted_markers[i]:
+                                raise ValueError(
+                                    f"Row would consume {consumed + cons} but only "
+                                    f"{noted_markers[i]} available"
+                                )
+                            consumed += cons
+                            produced += prod
+                            expanded.append(st)
                         continue
-                     for _ in range(count):
+                    if s == "inc":
+                        num_increases += count
+                    elif s == "dec":
+                        num_decreases += count
+                    if s == "pm":
+                        for _ in range(max(count, 1)):
+                            markers.append(produced)
+                        continue
+                    for _ in range(count):
+                        # Reject work_est-like tokens that fell through (should have been expanded)
+                        if self._normalize_work_est(s) == "work_est":
+                            raise ValueError(
+                                "'work est' requires a previous row; use after at least one row"
+                            )
                         cons, prod = self.CONSUME_PRODUCE.get(s, (1, 1))
                         if consumed + cons > noted_markers[i]:
-                              raise ValueError(
-                                 f"Row would consume {consumed + cons} but only {noted_markers[i]} available"
-                              )
+                            raise ValueError(
+                                f"Row would consume {consumed + cons} but only "
+                                f"{noted_markers[i]} available"
+                            )
                         consumed += cons
                         produced += prod
                         if s == "bo":
