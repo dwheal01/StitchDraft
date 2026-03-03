@@ -161,6 +161,18 @@
   min-width: 0;
 }
 
+.preview__small {
+  flex: 0 0 320px;
+  min-width: 260px;
+  max-width: 40%;
+  overflow: auto;
+}
+
+.preview__rows code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .chartCanvasWrapper {
   border-radius: 6px;
   border: 1px solid rgba(148, 163, 184, 0.6);
