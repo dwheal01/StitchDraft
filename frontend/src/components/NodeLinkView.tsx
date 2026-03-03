@@ -32,8 +32,6 @@ export function NodeLinkView({ nodes, links }: Props) {
 
   const viewBox = `${minX - padding} ${minY - padding} ${width} ${height}`
 
-  const byId = new Map(nodes.map((n) => [n.id, n]))
-
   const colorForType = (t: string) => {
     const key = t.toLowerCase()
     if (key === 'k') return '#4A90E2'
@@ -48,24 +46,6 @@ export function NodeLinkView({ nodes, links }: Props) {
   return (
     <div className="nodeLinkWrapper">
       <svg className="nodeLinkSvg" viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
-        <g className="nodeLinkLinks">
-          {links.map((l) => {
-            const s = byId.get(l.source)
-            const t = byId.get(l.target)
-            if (!s || !t) return null
-            return (
-              <line
-                key={`${l.source}->${l.target}`}
-                x1={s.x}
-                y1={s.y}
-                x2={t.x}
-                y2={t.y}
-                stroke="#9ca3af"
-                strokeWidth={1}
-              />
-            )
-          })}
-        </g>
         <g className="nodeLinkNodes">
           {nodes.map((n) => (
             <circle
