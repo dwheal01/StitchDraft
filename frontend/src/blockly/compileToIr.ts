@@ -91,6 +91,25 @@ export function compileWorkspaceToIr(workspace: Blockly.Workspace): CompileResul
           commands.push({ op: 'place_marker', side, position } as const)
           break
         }
+        case BlockTypes.PLACE_ON_HOLD: {
+          commands.push({ op: 'place_on_hold' } as const)
+          break
+        }
+        case BlockTypes.PLACE_ON_NEEDLE: {
+          const join_side = (cmd.getFieldValue('JOIN_SIDE') ?? 'RS') as StartSide
+          commands.push({ op: 'place_on_needle', join_side, source: 'last' } as const)
+          break
+        }
+        case BlockTypes.JOIN_CHARTS: {
+          const left_chart_name = String(cmd.getFieldValue('LEFT_CHART_NAME') ?? '').trim()
+          const right_chart_name = String(cmd.getFieldValue('RIGHT_CHART_NAME') ?? '').trim()
+          if (!left_chart_name || !right_chart_name) {
+            errors.push('Join Charts requires both left and right chart names.')
+          } else {
+            commands.push({ op: 'join', left_chart_name, right_chart_name } as const)
+          }
+          break
+        }
         default:
           errors.push(`Unsupported command block: ${cmd.type}`)
       }

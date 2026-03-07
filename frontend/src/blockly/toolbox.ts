@@ -44,6 +44,18 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
           kind: 'block',
           type: BlockTypes.PLACE_MARKER,
         },
+        {
+          kind: 'block',
+          type: BlockTypes.PLACE_ON_HOLD,
+        },
+        {
+          kind: 'block',
+          type: BlockTypes.PLACE_ON_NEEDLE,
+        },
+        {
+          kind: 'block',
+          type: BlockTypes.JOIN_CHARTS,
+        },
       ],
     },
     {

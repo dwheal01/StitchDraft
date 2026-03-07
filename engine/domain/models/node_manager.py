@@ -60,13 +60,16 @@ class NodeManager:
         self._node_counter += amount
     
     def set_stitches_on_hold(self) -> int:
-        self._stitches_on_hold = self._last_row_unconsumed_stitches
+        # Copy so we don't share the list with _last_row_unconsumed_stitches.
+        self._stitches_on_hold = list(self._last_row_unconsumed_stitches)
         count = 0
         for stitch in self._stitches_on_hold:
             self._last_row_stitches.remove(stitch)
             if stitch.type != "bo":
                 count += 1
         self.set_last_row_produced(self._last_row_produced - count)
+        # Clear unconsumed so the needle state reflects that those stitches are on hold.
+        self._last_row_unconsumed_stitches = []
         return len(self._stitches_on_hold)
     
     def places_stitches_on_needle(self, stitches_on_hold: List[Node]) -> None:

@@ -7,6 +7,9 @@ const CMD_REPEAT_ROWS_TYPE = 'cmd_repeat_rows'
 const CMD_ADD_ROUND_TYPE = 'cmd_add_round'
 const CMD_REPEAT_ROUNDS_TYPE = 'cmd_repeat_rounds'
 const CMD_PLACE_MARKER_TYPE = 'cmd_place_marker'
+const CMD_PLACE_ON_HOLD_TYPE = 'cmd_place_on_hold'
+const CMD_PLACE_ON_NEEDLE_TYPE = 'cmd_place_on_needle'
+const CMD_JOIN_CHARTS_TYPE = 'cmd_join_charts'
 const PATTERN_ROW_TYPE = 'pattern_row'
 
 export const BlockTypes = {
@@ -17,6 +20,9 @@ export const BlockTypes = {
   ADD_ROUND: CMD_ADD_ROUND_TYPE,
   REPEAT_ROUNDS: CMD_REPEAT_ROUNDS_TYPE,
   PLACE_MARKER: CMD_PLACE_MARKER_TYPE,
+  PLACE_ON_HOLD: CMD_PLACE_ON_HOLD_TYPE,
+  PLACE_ON_NEEDLE: CMD_PLACE_ON_NEEDLE_TYPE,
+  JOIN_CHARTS: CMD_JOIN_CHARTS_TYPE,
   PATTERN_ROW: PATTERN_ROW_TYPE,
 } as const
 
@@ -205,6 +211,56 @@ export function registerKnittingBlocks(): void {
       nextStatement: 'COMMAND',
       colour: 40,
       tooltip: 'Place a marker at the given position on RS/WS.',
+      helpUrl: '',
+    },
+    {
+      type: CMD_PLACE_ON_HOLD_TYPE,
+      message0: 'place on hold',
+      args0: [],
+      previousStatement: 'COMMAND',
+      nextStatement: 'COMMAND',
+      colour: 40,
+      tooltip: 'Place unconsumed stitches on hold.',
+      helpUrl: '',
+    },
+    {
+      type: CMD_PLACE_ON_NEEDLE_TYPE,
+      message0: 'place on needle join side %1',
+      args0: [
+        {
+          type: 'field_dropdown',
+          name: 'JOIN_SIDE',
+          options: [
+            ['RS', 'RS'],
+            ['WS', 'WS'],
+          ],
+        },
+      ],
+      previousStatement: 'COMMAND',
+      nextStatement: 'COMMAND',
+      colour: 40,
+      tooltip: 'Place stitches from the hold back on the needle on RS/WS.',
+      helpUrl: '',
+    },
+    {
+      type: CMD_JOIN_CHARTS_TYPE,
+      message0: 'join charts left %1 right %2',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'LEFT_CHART_NAME',
+          text: 'chart1',
+        },
+        {
+          type: 'field_input',
+          name: 'RIGHT_CHART_NAME',
+          text: 'chart2',
+        },
+      ],
+      previousStatement: 'COMMAND',
+      nextStatement: 'COMMAND',
+      colour: 40,
+      tooltip: 'Join another chart to this one.',
       helpUrl: '',
     },
   ])

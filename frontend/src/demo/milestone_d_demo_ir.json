@@ -1,0 +1,53 @@
+{
+  "version": "0.1",
+  "charts": [
+    {
+      "name": "join_demo",
+      "start_side": "RS",
+      "sts": 23,
+      "rows": 21,
+      "commands": [
+        { "op": "cast_on_start", "count": 10 },
+        {
+          "op": "repeat_rows",
+          "times": 3,
+          "patterns": ["k1, inc, repeat(k1), inc, k1", "repeat(k1)"]
+        },
+        {
+          "op": "join",
+          "left_chart_name": "join_demo",
+          "right_chart_name": "join_demo2"
+        }
+      ]
+    },
+    {
+      "name": "join_demo2",
+      "start_side": "RS",
+      "sts": 23,
+      "rows": 21,
+      "commands": [
+        { "op": "cast_on_start", "count": 10 },
+        {
+          "op": "repeat_rows",
+          "times": 3,
+          "patterns": ["k1, inc, repeat(k1), inc, k1", "repeat(k1)"]
+        }
+      ]
+    },
+    {
+      "name": "hold_demo",
+      "start_side": "RS",
+      "sts": 22,
+      "rows": 44,
+      "commands": [
+        { "op": "cast_on_start", "count": 10 },
+        { "op": "add_row", "pattern": "repeat(k1)" },
+        { "op": "add_row", "pattern": "" },
+        { "op": "place_on_hold" },
+        { "op": "add_row", "pattern": "repeat(k1)" },
+        { "op": "place_on_needle", "join_side": "WS", "source": "last" },
+        { "op": "add_row", "pattern": "repeat(k1)" }
+      ]
+    }
+  ]
+}

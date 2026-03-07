@@ -132,9 +132,10 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
             chart_obj.place_marker(cmd.side, cmd.position)
             return
         if isinstance(cmd, PlaceOnHold):
-            res = chart_obj.place_on_hold()
+            chart_obj.place_on_hold()
+            # Store the stitches we just put on hold (current hold), not the previous hold.
             if hold_slot is not None:
-                hold_slot["last_hold"] = res
+                hold_slot["last_hold"] = chart_obj.get_stitches_on_hold()
             return
         if isinstance(cmd, PlaceOnNeedle):
             if hold_slot is None or hold_slot.get("last_hold") is None:

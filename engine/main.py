@@ -1,4 +1,12 @@
 import json
+import sys
+from pathlib import Path
+
+# Ensure project root is in path (needed when running as script, not as installed package)
+_project_root = Path(__file__).resolve().parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
 from typing import Optional, TYPE_CHECKING
 
 # Use clean imports from the package

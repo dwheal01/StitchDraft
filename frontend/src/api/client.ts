@@ -29,7 +29,8 @@ export type PreviewResponse = {
   }>
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000'
+// In dev, use relative URL so Vite can proxy to the backend (avoids CORS). Override with VITE_API_BASE_URL when needed.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ''
 
 export async function fetchPreview(ir: KnittingIR, signal?: AbortSignal): Promise<PreviewResponse> {
   const res = await fetch(`${API_BASE_URL}/preview`, {

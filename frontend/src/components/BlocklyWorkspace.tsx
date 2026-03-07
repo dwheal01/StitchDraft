@@ -22,7 +22,8 @@ export function BlocklyWorkspace({ onCompiled }: Props) {
     () => ({
       toolbox,
       trashcan: true,
-      renderer: 'zelos',
+      // Use geras renderer; zelos can trigger a context menu DOM bug (MenuItem createDom / appendChild).
+      renderer: 'geras',
       grid: { spacing: 20, length: 3, colour: '#334155', snap: true },
       zoom: { controls: true, wheel: true, startScale: 0.9, maxScale: 2, minScale: 0.3 },
     }),
