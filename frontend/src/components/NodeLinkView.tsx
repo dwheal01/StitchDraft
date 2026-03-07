@@ -13,10 +13,11 @@ type LinkVm = {
 
 type Props = {
   nodes: NodeVm[]
+  // Keep for future use; currently ignored
   links: LinkVm[]
 }
 
-export function NodeLinkView({ nodes, links }: Props) {
+export function NodeLinkView({ nodes }: Props) {
   if (!nodes.length) {
     return <div className="nodeLinkEmpty">No stitches to display yet.</div>
   }
