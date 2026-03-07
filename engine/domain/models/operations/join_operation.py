@@ -14,10 +14,21 @@ class JoinOperation(IChartOperation):
         if not other:
             raise ValueError("No other chart provided for join operation")
         
-        last_stitch_self = chart.find_last_stitch()
-        new_fx = last_stitch_self.fx + chart.position_calculator.DEFAULT_SPACING
-        first_stitch_other = other.find_first_stitch()
-        offset = new_fx - first_stitch_other.fx
+        # Use actual geometry: place right chart to the right (x) and align bottom rows (y).
+        # Join means last row of left + last row of right form one continuous row; tops need not align.
+        spacing = chart.position_calculator.DEFAULT_SPACING
+        self_last_row = [n for n in chart.node_manager.get_last_row_stitches() if n.type != "strand"]
+        other_last_row_stitches = [n for n in other.node_manager.get_last_row_stitches() if n.type != "strand"]
+        if not self_last_row or not other_last_row_stitches:
+            raise ValueError("Cannot join: one or both charts have no stitch nodes in the last row")
+        rightmost_fx = max(n.fx for n in self_last_row)
+        leftmost_other_fx = min(n.fx for n in other_last_row_stitches)
+        new_fx = rightmost_fx + spacing
+        x_offset = new_fx - leftmost_other_fx
+        # Align bottoms: same y for both last rows so a following add_row works across all stitches
+        self_last_row_y = self_last_row[0].fy
+        other_last_row_y = other_last_row_stitches[0].fy
+        y_offset = self_last_row_y - other_last_row_y
         
         # Get the current node counter from the main chart
         # This will be the starting point for remapping the other chart's node IDs
@@ -48,9 +59,10 @@ class JoinOperation(IChartOperation):
                 new_id = f"{new_node_counter}"
                 id_mapping[old_id] = new_id
                 new_node_counter += 1
-                # Apply offset to fx position (like reference: stitch["fx"] += offset)
-                new_fx = stitch.fx + offset
-                new_node = replace(stitch, id=new_id, fx=new_fx)
+                # Apply x offset (right of left chart) and y offset (align bottom rows)
+                new_fx = stitch.fx + x_offset
+                new_fy = stitch.fy + y_offset
+                new_node = replace(stitch, id=new_id, fx=new_fx, fy=new_fy)
                 old_id_to_new_node[old_id] = new_node
                 offset_nodes.append(new_node)
         
@@ -66,21 +78,20 @@ class JoinOperation(IChartOperation):
                         # The stitch node was already remapped, use its new ID
                         new_strand_id = f"{id_mapping[old_base]}s"
                         id_mapping[old_id] = new_strand_id
-                        # Strand nodes don't get offset (they don't have fx)
-                        new_node = replace(stitch, id=new_strand_id)
+                        # Strand nodes: offset fy so they stay with their row (align bottoms)
+                        new_node = replace(stitch, id=new_strand_id, fy=stitch.fy + y_offset)
                         old_id_to_new_node[old_id] = new_node
                         offset_nodes.append(new_node)
                     else:
                         # This strand's stitch hasn't been processed - this shouldn't happen
-                        # but if it does, skip remapping and keep original ID
-                        # This will cause issues, so log a warning
-                        offset_nodes.append(stitch)
-                        old_id_to_new_node[old_id] = stitch
+                        # but if it does, skip remapping and keep original ID, still offset fy
+                        offset_nodes.append(replace(stitch, fy=stitch.fy + y_offset))
+                        old_id_to_new_node[old_id] = offset_nodes[-1]
                         # Don't add to id_mapping to avoid invalid mappings
                 else:
-                    # Strand without "s" suffix - shouldn't happen
-                    offset_nodes.append(stitch)
-                    old_id_to_new_node[old_id] = stitch
+                    # Strand without "s" suffix - shouldn't happen; still offset fy
+                    offset_nodes.append(replace(stitch, fy=stitch.fy + y_offset))
+                    old_id_to_new_node[old_id] = offset_nodes[-1]
         
         final_offset_nodes = offset_nodes
         
@@ -127,6 +138,20 @@ class JoinOperation(IChartOperation):
         chart.node_manager.extend_nodes(final_offset_nodes)
         chart.node_manager.increment_node_counter(other.node_manager.get_node_counter())
         chart.node_manager.append_to_last_row_stitches(offset_last_row)
+        
+        # After appending, update stitch count so the joined last row reflects
+        # stitches from both charts. This ensures get_current_num_of_stitches()
+        # and subsequent operations (e.g. add_row) see the full joined row.
+        old_count = chart.node_manager.get_last_row_produced()
+        # Recompute based on the actual last-row stitches (exclude bound‑off stitches).
+        combined_last_row = chart.node_manager.get_last_row_stitches()
+        new_count = sum(1 for stitch in combined_last_row if stitch.type != "bo")
+        chart.node_manager.set_last_row_produced(new_count)
+        # Keep the stitch counter in sync so validation stays consistent.
+        produced_delta = max(0, new_count - old_count)
+        if produced_delta:
+            chart.stitch_counter.record_operation("join", 0, produced_delta)
+            chart._notify_stitch_count_changed(old_count, new_count)
         
         # Merge links from other chart
         chart.link_manager.extend_links(remapped_links)
