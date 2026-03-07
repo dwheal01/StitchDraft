@@ -61,6 +61,36 @@ export function compileWorkspaceToIr(workspace: Blockly.Workspace): CompileResul
           commands.push({ op: 'repeat_rows', times, patterns } as const)
           break
         }
+        case BlockTypes.ADD_ROUND: {
+          const pattern = String(cmd.getFieldValue('PATTERN') ?? '').trim()
+          commands.push({ op: 'add_round', pattern } as const)
+          break
+        }
+        case BlockTypes.REPEAT_ROUNDS: {
+          const times = asNumber(cmd.getFieldValue('TIMES'))
+          const patterns: string[] = []
+          let p = cmd.getInputTargetBlock('PATTERNS')
+          while (p) {
+            if (p.type === BlockTypes.PATTERN_ROW || p.type === BlockTypes.ADD_ROW) {
+              const pat = String(p.getFieldValue('PATTERN') ?? '').trim()
+              if (pat) patterns.push(pat)
+            } else {
+              errors.push(`Unsupported pattern block inside repeat: ${p.type}`)
+            }
+            p = p.getNextBlock()
+          }
+          if (patterns.length === 0) {
+            errors.push('Repeat Rounds requires at least one pattern block.')
+          }
+          commands.push({ op: 'repeat_rounds', times, patterns } as const)
+          break
+        }
+        case BlockTypes.PLACE_MARKER: {
+          const side = (cmd.getFieldValue('SIDE') ?? 'RS') as StartSide
+          const position = asNumber(cmd.getFieldValue('POSITION'))
+          commands.push({ op: 'place_marker', side, position } as const)
+          break
+        }
         default:
           errors.push(`Unsupported command block: ${cmd.type}`)
       }

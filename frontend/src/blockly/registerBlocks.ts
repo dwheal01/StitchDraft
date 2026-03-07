@@ -4,6 +4,9 @@ const CHART_BLOCK_TYPE = 'chart_create'
 const CMD_CAST_ON_START_TYPE = 'cmd_cast_on_start'
 const CMD_ADD_ROW_TYPE = 'cmd_add_row'
 const CMD_REPEAT_ROWS_TYPE = 'cmd_repeat_rows'
+const CMD_ADD_ROUND_TYPE = 'cmd_add_round'
+const CMD_REPEAT_ROUNDS_TYPE = 'cmd_repeat_rounds'
+const CMD_PLACE_MARKER_TYPE = 'cmd_place_marker'
 const PATTERN_ROW_TYPE = 'pattern_row'
 
 export const BlockTypes = {
@@ -11,6 +14,9 @@ export const BlockTypes = {
   CAST_ON_START: CMD_CAST_ON_START_TYPE,
   ADD_ROW: CMD_ADD_ROW_TYPE,
   REPEAT_ROWS: CMD_REPEAT_ROWS_TYPE,
+  ADD_ROUND: CMD_ADD_ROUND_TYPE,
+  REPEAT_ROUNDS: CMD_REPEAT_ROUNDS_TYPE,
+  PLACE_MARKER: CMD_PLACE_MARKER_TYPE,
   PATTERN_ROW: PATTERN_ROW_TYPE,
 } as const
 
@@ -133,6 +139,72 @@ export function registerKnittingBlocks(): void {
       nextStatement: 'COMMAND',
       colour: 120,
       tooltip: 'Repeat a sequence of row patterns.',
+      helpUrl: '',
+    },
+    {
+      type: CMD_ADD_ROUND_TYPE,
+      message0: 'add round pattern %1',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'PATTERN',
+          text: 'repeat(k1)',
+        },
+      ],
+      previousStatement: 'COMMAND',
+      nextStatement: 'COMMAND',
+      colour: 120,
+      tooltip: 'Add a round using the engine pattern DSL.',
+      helpUrl: '',
+    },
+    {
+      type: CMD_REPEAT_ROUNDS_TYPE,
+      message0: 'repeat rounds %1 times %2 patterns %3',
+      args0: [
+        {
+          type: 'field_number',
+          name: 'TIMES',
+          value: 2,
+          min: 0,
+          precision: 1,
+        },
+        { type: 'input_dummy' },
+        {
+          type: 'input_statement',
+          name: 'PATTERNS',
+          check: 'PATTERN',
+        },
+      ],
+      previousStatement: 'COMMAND',
+      nextStatement: 'COMMAND',
+      colour: 120,
+      tooltip: 'Repeat a sequence of round patterns.',
+      helpUrl: '',
+    },
+    {
+      type: CMD_PLACE_MARKER_TYPE,
+      message0: 'place marker side %1 position %2',
+      args0: [
+        {
+          type: 'field_dropdown',
+          name: 'SIDE',
+          options: [
+            ['RS', 'RS'],
+            ['WS', 'WS'],
+          ],
+        },
+        {
+          type: 'field_number',
+          name: 'POSITION',
+          value: 0,
+          min: 0,
+          precision: 1,
+        },
+      ],
+      previousStatement: 'COMMAND',
+      nextStatement: 'COMMAND',
+      colour: 40,
+      tooltip: 'Place a marker at the given position on RS/WS.',
       helpUrl: '',
     },
   ])

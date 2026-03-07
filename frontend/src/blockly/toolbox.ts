@@ -30,7 +30,19 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
         },
         {
           kind: 'block',
+          type: BlockTypes.ADD_ROUND,
+        },
+        {
+          kind: 'block',
           type: BlockTypes.REPEAT_ROWS,
+        },
+        {
+          kind: 'block',
+          type: BlockTypes.REPEAT_ROUNDS,
+        },
+        {
+          kind: 'block',
+          type: BlockTypes.PLACE_MARKER,
         },
       ],
     },
