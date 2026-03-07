@@ -244,18 +244,28 @@ export function registerKnittingBlocks(): void {
     },
     {
       type: CMD_JOIN_CHARTS_TYPE,
-      message0: 'join chart %1',
+      message0: 'pattern 1 %1 join chart %2 pattern 2 %3',
       args0: [
+        {
+          type: 'input_statement',
+          name: 'PATTERN1',
+          check: 'PATTERN',
+        },
         {
           type: 'field_input',
           name: 'CHART_NAME',
           text: 'chart1',
         },
+        {
+          type: 'input_statement',
+          name: 'PATTERN2',
+          check: 'PATTERN',
+        },
       ],
       previousStatement: 'COMMAND',
       nextStatement: 'COMMAND',
       colour: 40,
-      tooltip: 'Join another chart to the right of this chart (current chart stays on the left).',
+      tooltip: 'Work pattern 1 across this chart, join the named chart on the right, then work pattern 2 across that chart. Insert pattern blocks (from Patterns) into each slot.',
       helpUrl: '',
     },
   ])

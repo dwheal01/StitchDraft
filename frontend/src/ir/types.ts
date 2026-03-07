@@ -13,6 +13,7 @@ export type CommandOp =
   | 'place_on_hold'
   | 'place_on_needle'
   | 'join'
+  | 'join_and_knit'
 
 export type KnittingCommand =
   | { op: 'cast_on_start'; count: number }
@@ -25,6 +26,7 @@ export type KnittingCommand =
   | { op: 'place_on_hold' }
   | { op: 'place_on_needle'; join_side: StartSide; source: string }
   | { op: 'join'; left_chart_name: string; right_chart_name: string }
+  | { op: 'join_and_knit'; right_chart_name: string; pattern1: string; pattern2: string }
 
 export type ChartProgram = {
   name: string

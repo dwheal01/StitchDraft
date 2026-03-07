@@ -9,7 +9,7 @@ import { BlockTypes } from './registerBlocks'
 type MockBlock = {
   type: string
   getFieldValue: (name: string) => string | number | undefined
-  getInputTargetBlock: () => MockBlock | null
+  getInputTargetBlock: (inputName?: string) => MockBlock | null
   getNextBlock: () => MockBlock | null
 }
 
@@ -18,38 +18,58 @@ function mockBlock(
   type: string,
   fields: Record<string, string | number> = {},
   inputBlock?: MockBlock | null,
-  nextBlock?: MockBlock | null
+  nextBlock?: MockBlock | null,
+  inputs?: Record<string, MockBlock | null>
 ): MockBlock {
   return {
     type,
     getFieldValue: (name: string) => fields[name],
-    getInputTargetBlock: () => inputBlock ?? null,
+    getInputTargetBlock: (inputName?: string) => {
+      if (inputs != null && inputName !== undefined) return inputs[inputName] ?? null
+      return inputBlock ?? null
+    },
     getNextBlock: () => nextBlock ?? null,
   }
 }
 
 /** Build a chain of command blocks */
-function mockCommandChain(commands: Array<{ type: string; fields?: Record<string, string | number>; patterns?: string[]; times?: number }>) {
+function mockCommandChain(
+  commands: Array<{
+    type: string
+    fields?: Record<string, string | number>
+    patterns?: string[]
+    times?: number
+    pattern1?: string
+    pattern2?: string
+  }>
+) {
   let prev: MockBlock | null = null
   for (let i = commands.length - 1; i >= 0; i--) {
     const cmd = commands[i]
+    let inputBlock: MockBlock | null = null
+    let inputs: Record<string, MockBlock | null> | undefined
+    if (cmd.type === BlockTypes.JOIN_CHARTS && (cmd.pattern1 != null || cmd.pattern2 != null)) {
+      inputs = {
+        PATTERN1: mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: cmd.pattern1 ?? 'repeat(k1)' }),
+        PATTERN2: mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: cmd.pattern2 ?? 'repeat(k1)' }),
+      }
+    } else if (cmd.patterns) {
+      let pPrev: MockBlock | null = null
+      for (let j = cmd.patterns.length - 1; j >= 0; j--) {
+        const p = mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: cmd.patterns[j] }, null, pPrev)
+        pPrev = p
+      }
+      inputBlock = pPrev
+    }
     const block = mockBlock(
       cmd.type,
       {
         ...cmd.fields,
         ...(cmd.times !== undefined && { TIMES: cmd.times }),
       },
-      cmd.patterns
-        ? (() => {
-            let pPrev: MockBlock | null = null
-            for (let j = cmd.patterns!.length - 1; j >= 0; j--) {
-              const p = mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: cmd.patterns![j] }, null, pPrev)
-              pPrev = p
-            }
-            return pPrev
-          })()
-        : undefined,
-      prev
+      inputBlock ?? undefined,
+      prev,
+      inputs
     )
     prev = block
   }
@@ -113,7 +133,7 @@ describe('compileToIr', () => {
     })
   })
 
-  it('compiles join charts to IR', () => {
+  it('compiles join & knit to IR', () => {
     const workspace = mockWorkspaceMulti([
       {
         name: 'left_chart',
@@ -122,6 +142,8 @@ describe('compileToIr', () => {
           {
             type: BlockTypes.JOIN_CHARTS,
             fields: { CHART_NAME: 'right_chart' },
+            pattern1: 'repeat(k1)',
+            pattern2: 'repeat(k1)',
           },
         ],
       },
@@ -135,9 +157,10 @@ describe('compileToIr', () => {
     expect(result.errors).toHaveLength(0)
     const leftChart = result.ir.charts.find((c) => c.name === 'left_chart')
     expect(leftChart?.commands).toContainEqual({
-      op: 'join',
-      left_chart_name: 'left_chart',
+      op: 'join_and_knit',
       right_chart_name: 'right_chart',
+      pattern1: 'repeat(k1)',
+      pattern2: 'repeat(k1)',
     })
   })
 })

@@ -102,10 +102,19 @@ export function compileWorkspaceToIr(workspace: Blockly.Workspace): CompileResul
         }
         case BlockTypes.JOIN_CHARTS: {
           const right_chart_name = String(cmd.getFieldValue('CHART_NAME') ?? '').trim()
+          const firstPatternFrom = (inputName: string) => {
+            const p = cmd.getInputTargetBlock(inputName)
+            if (p && (p.type === BlockTypes.PATTERN_ROW || p.type === BlockTypes.ADD_ROW)) {
+              return String(p.getFieldValue('PATTERN') ?? '').trim() || 'repeat(k1)'
+            }
+            return 'repeat(k1)'
+          }
+          const pattern1 = firstPatternFrom('PATTERN1')
+          const pattern2 = firstPatternFrom('PATTERN2')
           if (!right_chart_name) {
-            errors.push('Join chart requires a chart name to join.')
+            errors.push('Join & knit requires a chart name to join.')
           } else {
-            commands.push({ op: 'join', left_chart_name: name, right_chart_name } as const)
+            commands.push({ op: 'join_and_knit', right_chart_name, pattern1, pattern2 } as const)
           }
           break
         }
