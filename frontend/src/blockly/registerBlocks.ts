@@ -244,23 +244,18 @@ export function registerKnittingBlocks(): void {
     },
     {
       type: CMD_JOIN_CHARTS_TYPE,
-      message0: 'join charts left %1 right %2',
+      message0: 'join chart %1',
       args0: [
         {
           type: 'field_input',
-          name: 'LEFT_CHART_NAME',
+          name: 'CHART_NAME',
           text: 'chart1',
-        },
-        {
-          type: 'field_input',
-          name: 'RIGHT_CHART_NAME',
-          text: 'chart2',
         },
       ],
       previousStatement: 'COMMAND',
       nextStatement: 'COMMAND',
       colour: 40,
-      tooltip: 'Join another chart to this one.',
+      tooltip: 'Join another chart to the right of this chart (current chart stays on the left).',
       helpUrl: '',
     },
   ])

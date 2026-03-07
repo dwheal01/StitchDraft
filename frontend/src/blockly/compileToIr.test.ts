@@ -121,7 +121,7 @@ describe('compileToIr', () => {
           { type: BlockTypes.CAST_ON_START, fields: { COUNT: 10 } },
           {
             type: BlockTypes.JOIN_CHARTS,
-            fields: { LEFT_CHART_NAME: 'left_chart', RIGHT_CHART_NAME: 'right_chart' },
+            fields: { CHART_NAME: 'right_chart' },
           },
         ],
       },

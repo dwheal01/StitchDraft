@@ -101,12 +101,11 @@ export function compileWorkspaceToIr(workspace: Blockly.Workspace): CompileResul
           break
         }
         case BlockTypes.JOIN_CHARTS: {
-          const left_chart_name = String(cmd.getFieldValue('LEFT_CHART_NAME') ?? '').trim()
-          const right_chart_name = String(cmd.getFieldValue('RIGHT_CHART_NAME') ?? '').trim()
-          if (!left_chart_name || !right_chart_name) {
-            errors.push('Join Charts requires both left and right chart names.')
+          const right_chart_name = String(cmd.getFieldValue('CHART_NAME') ?? '').trim()
+          if (!right_chart_name) {
+            errors.push('Join chart requires a chart name to join.')
           } else {
-            commands.push({ op: 'join', left_chart_name, right_chart_name } as const)
+            commands.push({ op: 'join', left_chart_name: name, right_chart_name } as const)
           }
           break
         }
