@@ -28,7 +28,7 @@ class AddRowOperation(IChartOperation):
             expanded = chart.pattern_parser.expand_pattern(
                 pattern,
                 chart.node_manager.get_last_row_produced(),
-                chart.row_manager.get_last_row_side(),
+                side,
                 last_row=last_row,
                 is_round=is_round,
             )

@@ -254,6 +254,47 @@ def test_existing_functionality():
     return chart
 
 
+def test_rs_ws_marker_side_handling():
+    """Regression: RS-placed markers are used at RS position on RS rows and mirrored on WS rows.
+    Without the fix, the second row (RS) incorrectly used WS markers and read '2 from the end'."""
+    print("\nTesting RS/WS marker side handling...")
+
+    factory = ChartSectionFactory()
+    chart = factory.create_with_defaults(
+        name="marker_side_test",
+        start_side="RS"
+    )
+    chart.cast_on_start(10)
+    chart.place_marker("RS", 2)
+
+    # Row 1: WS (start_side RS -> first add_row is WS). Uses WS marker at 8 -> segments 8 sts, then 2 sts.
+    chart.add_row("repeat(k1), sm, repeat(k1)")
+    # Row 2: RS. Must use RS marker at 2 so "k2, sm, p8" stops after 2 stitches before marker.
+    chart.add_row("k2, sm, p8")
+
+    assert chart.get_markers("RS") == [2], "RS marker should be at position 2"
+    assert chart.get_markers("WS") == [8], "WS marker should be mirrored at position 8 (10-2)"
+
+    rows = chart.row_manager.get_rows()
+    # Row 0 = cast-on (WS); row 1 = first pattern row (RS); row 2 = second pattern row (WS).
+    assert len(rows) >= 3, "Should have at least 3 rows (cast-on + 2 pattern rows)"
+    assert len(rows[1]) == 10 and len(rows[2]) == 10, "Pattern rows should have 10 stitches"
+
+    # Row 1 (RS): with correct side handling, RS marker at 2 -> "repeat(k1), sm, repeat(k1)" gives 2 k's then 8 k's = 10 k's.
+    rs_row = rows[1]
+    assert rs_row == ["k"] * 10, (
+        f"RS row (row 1) should be 10 k's (marker at 2 from start); got {rs_row}"
+    )
+    # Row 2 (WS): "k2, sm, p8" with WS marker at 8 -> 2 k's, 8 p's; stored reversed for WS -> 8 p's, 2 k's.
+    ws_row = rows[2]
+    assert ws_row == ["p"] * 8 + ["k"] * 2, (
+        f"WS row (row 2) should be 8 p's then 2 k's (reversed); got {ws_row}"
+    )
+    print("✓ RS/WS marker side handling: RS row uses marker at position 2 from start")
+
+    return chart
+
+
 def test_join_operation():
     """Test join operation using OperationRegistry."""
     print("\nTesting join operation...")
@@ -311,7 +352,10 @@ if __name__ == "__main__":
         # Test 7: Existing functionality
         chart7 = test_existing_functionality()
         
-        # Test 8: Join operation
+        # Test 8: RS/WS marker side handling (regression)
+        chart7b = test_rs_ws_marker_side_handling()
+        
+        # Test 9: Join operation
         chart8 = test_join_operation()
         
         print("\n" + "=" * 70)
