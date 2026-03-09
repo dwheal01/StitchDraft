@@ -39,6 +39,7 @@ function mockCommandChain(
     fields?: Record<string, string | number>
     patterns?: string[]
     times?: number
+    pattern?: string
     pattern1?: string
     pattern2?: string
   }>
@@ -48,9 +49,9 @@ function mockCommandChain(
     const cmd = commands[i]
     let inputBlock: MockBlock | null = null
     let inputs: Record<string, MockBlock | null> | undefined
-    if (cmd.type === BlockTypes.JOIN_CHARTS && (cmd as { pattern?: string }).pattern != null) {
+    if (cmd.type === BlockTypes.JOIN_CHARTS && cmd.pattern != null) {
       inputs = {
-        PATTERN: mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: (cmd as { pattern: string }).pattern }),
+        PATTERN: mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: cmd.pattern }),
       }
     } else if (cmd.patterns) {
       let pPrev: MockBlock | null = null
@@ -76,7 +77,10 @@ function mockCommandChain(
 }
 
 /** Mock workspace with one chart */
-function mockWorkspace(chartName: string, commands: Array<{ type: string; fields?: Record<string, string | number>; patterns?: string[]; times?: number }>) {
+function mockWorkspace(
+  chartName: string,
+  commands: Array<{ type: string; fields?: Record<string, string | number>; patterns?: string[]; times?: number; pattern?: string }>
+) {
   const commandChain = mockCommandChain(commands)
   const chartBlock = mockBlock(
     BlockTypes.CHART,
@@ -90,7 +94,10 @@ function mockWorkspace(chartName: string, commands: Array<{ type: string; fields
 
 /** Mock workspace with multiple charts */
 function mockWorkspaceMulti(
-  charts: Array<{ name: string; commands: Array<{ type: string; fields?: Record<string, string | number>; patterns?: string[]; times?: number }> }>
+  charts: Array<{
+    name: string
+    commands: Array<{ type: string; fields?: Record<string, string | number>; patterns?: string[]; times?: number; pattern?: string }>
+  }>
 ) {
   const chartBlocks = charts.map((c) => {
     const commandChain = mockCommandChain(c.commands)

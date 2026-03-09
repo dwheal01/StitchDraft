@@ -5,6 +5,9 @@ import { fetchPreview } from './api/client'
 import type { KnittingIR } from './ir/types'
 import { BlocklyWorkspace } from './components/BlocklyWorkspace'
 import { NodeLinkView } from './components/NodeLinkView'
+import type { TorsoSvgResponse } from './api/client'
+import { TorsoControls } from './components/TorsoControls'
+import { TorsoOverlayView } from './components/TorsoOverlayView'
 
 function App() {
   const [compiled, setCompiled] = useState<KnittingIR | null>(null)
@@ -12,6 +15,8 @@ function App() {
   const [preview, setPreview] = useState<PreviewResponse | null>(null)
   const [previewError, setPreviewError] = useState<string>('')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [torsoByChart, setTorsoByChart] = useState<Record<string, TorsoSvgResponse | null>>({})
+  const [torsoOpenByChart, setTorsoOpenByChart] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     if (!compiled) return
@@ -120,6 +125,34 @@ function App() {
                       Markers RS: {c.markers.RS.join(', ') || '—'} | WS: {c.markers.WS.join(', ') || '—'}
                     </div>
                     <NodeLinkView nodes={c.nodes} links={c.links} />
+                  </div>
+
+                  <div className="torsoPanel">
+                    <button
+                      className="torsoPanel__toggle"
+                      onClick={() =>
+                        setTorsoOpenByChart((prev) => ({
+                          ...prev,
+                          [c.chartName]: !prev[c.chartName],
+                        }))
+                      }
+                    >
+                      {torsoOpenByChart[c.chartName] ? 'Hide torso view' : 'Show torso view'}
+                    </button>
+
+                    {torsoOpenByChart[c.chartName] ? (
+                      <div className="torsoPanel__content">
+                        <TorsoControls
+                          onTorsoLoaded={(torso) =>
+                            setTorsoByChart((prev) => ({
+                              ...prev,
+                              [c.chartName]: torso,
+                            }))
+                          }
+                        />
+                        <TorsoOverlayView torso={torsoByChart[c.chartName] ?? null} nodes={c.nodes} />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}
