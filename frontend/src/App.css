@@ -166,3 +166,9 @@
   opacity: 0.8;
   font-size: 12px;
 }
+
+.nodeLinkMeasurement {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.9;
+}
