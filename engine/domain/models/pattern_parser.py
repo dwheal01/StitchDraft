@@ -51,6 +51,18 @@ class PatternParser:
             cons, _ = self.CONSUME_PRODUCE.get(s, (1, 1))
             total += cons * count
         return total
+
+    def _consumption_of_inner(self, inner_tokens: List[str]) -> int:
+        """Stitches consumed by one repetition of the inner pattern (e.g. repeat(k2) -> 2)."""
+        total = 0
+        for token in inner_tokens:
+            s, count = self.parse_token(token)
+            s = self._normalize_work_est(s)
+            if s == "pm":
+                continue
+            cons, _ = self.CONSUME_PRODUCE.get(s, (1, 1))
+            total += cons * count
+        return total
     
     def _work_est_stitch(self, prev_stitch: str, side: str, is_round: bool) -> str:
         """Return stitch for 'work as established': match how the fabric looks on the RS.
@@ -107,6 +119,10 @@ class PatternParser:
                     leading_sts = len(expanded)
                     inner = token[len("repeat("):-1].strip()
                     inner_tokens = self.split_tokens(inner)
+                    # Cap repetitions so we don't consume more than remaining (e.g. repeat(k2) consumes 2 per rep).
+                    consumption_per_repeat = self._consumption_of_inner(inner_tokens)
+                    if consumption_per_repeat > 0:
+                        fill_count = min(fill_count, remaining // consumption_per_repeat)
                     for _ in range(fill_count):
                         for inner_token in inner_tokens:
                             s, count = self.parse_token(inner_token)

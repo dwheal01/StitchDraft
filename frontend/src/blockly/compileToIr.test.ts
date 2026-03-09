@@ -48,10 +48,9 @@ function mockCommandChain(
     const cmd = commands[i]
     let inputBlock: MockBlock | null = null
     let inputs: Record<string, MockBlock | null> | undefined
-    if (cmd.type === BlockTypes.JOIN_CHARTS && (cmd.pattern1 != null || cmd.pattern2 != null)) {
+    if (cmd.type === BlockTypes.JOIN_CHARTS && (cmd as { pattern?: string }).pattern != null) {
       inputs = {
-        PATTERN1: mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: cmd.pattern1 ?? 'repeat(k1)' }),
-        PATTERN2: mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: cmd.pattern2 ?? 'repeat(k1)' }),
+        PATTERN: mockBlock(BlockTypes.PATTERN_ROW, { PATTERN: (cmd as { pattern: string }).pattern }),
       }
     } else if (cmd.patterns) {
       let pPrev: MockBlock | null = null
@@ -147,7 +146,7 @@ describe('compileToIr', () => {
     })
   })
 
-  it('compiles join & knit to IR', () => {
+  it('compiles join block to IR (join op; optional pattern for right chart)', () => {
     const workspace = mockWorkspaceMulti([
       {
         name: 'left_chart',
@@ -156,8 +155,6 @@ describe('compileToIr', () => {
           {
             type: BlockTypes.JOIN_CHARTS,
             fields: { CHART_NAME: 'right_chart' },
-            pattern1: 'repeat(k1)',
-            pattern2: 'repeat(k1)',
           },
         ],
       },
@@ -171,10 +168,40 @@ describe('compileToIr', () => {
     expect(result.errors).toHaveLength(0)
     const leftChart = result.ir.charts.find((c) => c.name === 'left_chart')
     expect(leftChart?.commands).toContainEqual({
-      op: 'join_and_knit',
+      op: 'join',
+      left_chart_name: 'left_chart',
       right_chart_name: 'right_chart',
-      pattern1: 'repeat(k1)',
-      pattern2: 'repeat(k1)',
+      right_pattern: '',
+    })
+  })
+
+  it('compiles join block with pattern to IR (right_pattern emitted)', () => {
+    const workspace = mockWorkspaceMulti([
+      {
+        name: 'left_chart',
+        commands: [
+          { type: BlockTypes.CAST_ON_START, fields: { COUNT: 10 } },
+          {
+            type: BlockTypes.JOIN_CHARTS,
+            fields: { CHART_NAME: 'right_chart' },
+            pattern: 'repeat(k1)',
+          },
+        ],
+      },
+      {
+        name: 'right_chart',
+        commands: [{ type: BlockTypes.CAST_ON_START, fields: { COUNT: 10 } }],
+      },
+    ])
+
+    const result = compileWorkspaceToIr(workspace as never)
+    expect(result.errors).toHaveLength(0)
+    const leftChart = result.ir.charts.find((c) => c.name === 'left_chart')
+    expect(leftChart?.commands).toContainEqual({
+      op: 'join',
+      left_chart_name: 'left_chart',
+      right_chart_name: 'right_chart',
+      right_pattern: 'repeat(k1)',
     })
   })
 })

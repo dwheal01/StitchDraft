@@ -25,7 +25,7 @@ export type KnittingCommand =
   | { op: 'place_marker'; side: StartSide; position: number }
   | { op: 'place_on_hold'; name?: string }
   | { op: 'place_on_needle'; join_side: StartSide; from_hold?: string; source?: string; cast_on_between?: number }
-  | { op: 'join'; left_chart_name: string; right_chart_name: string }
+  | { op: 'join'; left_chart_name: string; right_chart_name: string; right_pattern?: string }
   | { op: 'join_and_knit'; right_chart_name: string; pattern1: string; pattern2: string }
 
 export type ChartProgram = {

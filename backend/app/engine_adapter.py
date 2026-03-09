@@ -141,6 +141,10 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
                 raise ValueError("join not available in this execution context")
             left = ensure_chart_built_fn(cmd.left_chart_name)
             right = ensure_chart_built_fn(cmd.right_chart_name)
+            right_pattern = (getattr(cmd, "right_pattern", None) or "").strip()
+            if right_pattern:
+                # Add one row to the right chart only (like adding repeat(k1) to chart1 before the join)
+                right.add_row(right_pattern)
             left.join(right)
             return
 

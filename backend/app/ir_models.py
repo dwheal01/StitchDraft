@@ -63,6 +63,7 @@ class JoinCharts(BaseModel):
     op: Literal["join"]
     left_chart_name: str
     right_chart_name: str
+    right_pattern: str = ""  # how to work the right chart's stitches after join (e.g. repeat(k1))
 
 
 KnittingCommand = Annotated[

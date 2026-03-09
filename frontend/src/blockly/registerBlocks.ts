@@ -282,13 +282,8 @@ export function registerKnittingBlocks(): void {
     },
     {
       type: CMD_JOIN_CHARTS_TYPE,
-      message0: 'pattern 1 %1 join chart %2 pattern 2 %3',
+      message0: 'join chart %1 work right with %2',
       args0: [
-        {
-          type: 'input_statement',
-          name: 'PATTERN1',
-          check: 'PATTERN',
-        },
         {
           type: 'field_input',
           name: 'CHART_NAME',
@@ -296,14 +291,14 @@ export function registerKnittingBlocks(): void {
         },
         {
           type: 'input_statement',
-          name: 'PATTERN2',
+          name: 'PATTERN',
           check: 'PATTERN',
         },
       ],
       previousStatement: 'COMMAND',
       nextStatement: 'COMMAND',
       colour: 40,
-      tooltip: 'Work pattern 1 across this chart, join the named chart on the right, then work pattern 2 across that chart. Insert pattern blocks (from Patterns) into each slot.',
+      tooltip: 'Join the named chart to the right of this chart. The pattern states how to work the new (right) chart\'s stitches (e.g. repeat(k1) or k2, inc, repeat(k1)).',
       helpUrl: '',
     },
   ])
