@@ -8,3 +8,4 @@ class ExpandedPattern:
     consumed: int
     produced: int
     markers: List[int]
+    warnings: List[str]

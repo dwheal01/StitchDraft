@@ -104,6 +104,17 @@ function App() {
                     </div>
                   ) : null}
 
+                  {c.warnings.length > 0 ? (
+                    <div className="errors" role="status">
+                      <div className="errors__title">Warnings</div>
+                      <ul className="errors__list">
+                        {c.warnings.map((w) => (
+                          <li key={`${c.chartName}-warn-${w.commandIndex}-${w.message}`}>{`Command ${w.commandIndex}: ${w.message}`}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
                   <div className="preview__viz">
                     <div className="preview__rowMeta">
                       Markers RS: {c.markers.RS.join(', ') || '—'} | WS: {c.markers.WS.join(', ') || '—'}

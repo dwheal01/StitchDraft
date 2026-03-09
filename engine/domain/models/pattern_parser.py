@@ -96,6 +96,7 @@ class PatternParser:
         expanded = []
         consumed = 0
         produced = 0
+        warnings: List[str] = []
         last_row_len = available_stitches
         leading_sts = 0
         bind_off_count = 0
@@ -106,7 +107,26 @@ class PatternParser:
         for i, segment in enumerate(segments):
             num_increases = 0
             num_decreases = 0
+            segment_start_consumed = consumed
             tokens = self.split_tokens(segment)
+            # Alignment warning (MVP): pure repeat(...) row where repeat width doesn't divide segment stitch count.
+            # Example: 11 sts with repeat(k1,p1) -> partial repeat (unwinds visually).
+            if len(tokens) == 1 and tokens[0].startswith("repeat(") and tokens[0].endswith(")"):
+                inner = tokens[0][len("repeat("):-1].strip()
+                inner_tokens = self.split_tokens(inner)
+                normalized_inner = []
+                for t in inner_tokens:
+                    s, _ = self.parse_token(t)
+                    normalized_inner.append(self._normalize_work_est(s))
+                if not any(s in ("inc", "dec", "bo", "co") for s in normalized_inner):
+                    inner_width = self._consumption_of_inner(inner_tokens)
+                    segment_available = max(0, noted_markers[i] - segment_start_consumed)
+                    if inner_width > 0 and segment_available % inner_width != 0:
+                        warnings.append(
+                            f"Pattern '{tokens[0]}' repeats every {inner_width} stitch(es) but "
+                            f"{segment_available} stitch(es) are available; final repeat will be partial "
+                            f"and the pattern may not align."
+                        )
             repeat_indices = [j for j, t in enumerate(tokens) if t.startswith("repeat(") and t.endswith(")")]
             for j, token in enumerate(tokens):
                 if token.startswith("repeat(") and token.endswith(")"):
@@ -215,7 +235,8 @@ class PatternParser:
             stitches=expanded,
             consumed=consumed,
             produced=produced,
-            markers=markers
+            markers=markers,
+            warnings=warnings,
         )
  
     def _split_by_sm(self, pattern: str, side: str) -> Tuple[List[str], List[int], List[int]]:

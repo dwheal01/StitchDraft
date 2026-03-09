@@ -9,6 +9,7 @@ class AddRowOperation(IChartOperation):
     
     def execute(self, chart: ChartSection, params: Dict) -> ChartSection:
         """Add a new row to the pattern."""
+        chart._last_warnings = []
         pattern = params.get('pattern')
         is_round = params.get('is_round', False)
         
@@ -36,6 +37,7 @@ class AddRowOperation(IChartOperation):
                 last_row=last_row,
                 is_round=is_round,
             )
+            chart._last_warnings = list(getattr(expanded, "warnings", []) or [])
             new_row = expanded.stitches
             consumed = expanded.consumed
             produced = expanded.produced

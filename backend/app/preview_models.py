@@ -13,6 +13,11 @@ class PreviewError(BaseModel):
     message: str
 
 
+class PreviewWarning(BaseModel):
+    commandIndex: int = Field(ge=0)
+    message: str
+
+
 class RowMeta(BaseModel):
     rowIndex: int = Field(ge=0)
     side: StartSide
@@ -45,6 +50,7 @@ class ChartPreview(BaseModel):
     rowMeta: list[RowMeta] = Field(default_factory=list)
     markers: MarkersBySide = Field(default_factory=MarkersBySide)
     errors: list[PreviewError] = Field(default_factory=list)
+    warnings: list[PreviewWarning] = Field(default_factory=list)
     currentStitchCount: int = Field(ge=0)
     lastRowSide: Optional[StartSide] = None
     nodes: list[NodeView] = Field(default_factory=list)

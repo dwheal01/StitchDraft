@@ -13,6 +13,7 @@ export type PreviewResponse = {
     }>
     markers: { RS: number[]; WS: number[] }
     errors: Array<{ commandIndex: number; message: string }>
+    warnings: Array<{ commandIndex: number; message: string }>
     currentStitchCount: number
     lastRowSide: 'RS' | 'WS' | null
     nodes: Array<{

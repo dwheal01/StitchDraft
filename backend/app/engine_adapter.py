@@ -23,6 +23,7 @@ from backend.app.ir_models import (
     RepeatRows,
 )
 from backend.app.preview_models import ChartPreview, MarkersBySide, PreviewError, RowMeta
+from backend.app.preview_models import PreviewWarning
 
 
 class InMemoryChartRepository(IChartRepository):
@@ -72,6 +73,7 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
     )
 
     errors: list[PreviewError] = []
+    warnings: list[PreviewWarning] = []
     row_meta: list[RowMeta] = []
 
     # For join, we need charts by name. MVP: create/join only if referenced charts exist in IR.
@@ -152,6 +154,9 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
         def record_row(is_round: bool, fn, pattern: str) -> None:
             before = chart_obj.get_current_num_of_stitches()
             fn(pattern)
+            for msg in getattr(chart_obj, "pop_last_warnings", lambda: [])():
+                if row_meta_out is not None:
+                    warnings.append(PreviewWarning(commandIndex=cmd_index, message=msg))
             after = chart_obj.get_current_num_of_stitches()
             if row_meta_out is not None:
                 row_meta_out.append(
@@ -231,6 +236,7 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
         rowMeta=row_meta,
         markers=_markers_for(chart),
         errors=errors,
+        warnings=warnings,
         currentStitchCount=chart.get_current_num_of_stitches(),
         lastRowSide=last_row_side,
         nodes=nodes_view,

@@ -66,6 +66,9 @@ class ChartSection:
                 row_manager=self.row_manager,
                 marker_manager=self.marker_manager
             )
+
+        # Non-fatal guidance (e.g. repeat alignment warnings) produced by last operation.
+        self._last_warnings: List[str] = []
             
     # Observer management
     def attach(self, observer: IChartObserver) -> None:
@@ -315,6 +318,16 @@ class ChartSection:
         for _ in range(count):
             for pattern in row_patterns:
                 self.add_round(pattern)
+
+    def get_last_warnings(self) -> List[str]:
+        """Return non-fatal warnings from the most recent operation."""
+        return list(self._last_warnings)
+
+    def pop_last_warnings(self) -> List[str]:
+        """Return and clear non-fatal warnings from the most recent operation."""
+        w = list(self._last_warnings)
+        self._last_warnings = []
+        return w
     
     @property
     def nodes(self):
