@@ -8,17 +8,21 @@ class PlaceOnHoldOperation(IChartOperation):
     """Operation to place stitches on hold."""
     
     def execute(self, chart: ChartSection, params: Dict) -> ChartSection:
-        """Place the unconsumed stitches on hold."""
-        previous_stitches_on_hold = chart.node_manager.get_stitches_on_hold()
+        """Place the unconsumed stitches on hold in the named slot."""
+        name = params.get('name', chart.node_manager.DEFAULT_HOLD_NAME)
+        previous_stitches_on_hold = chart.node_manager.get_stitches_on_hold(name)
         old_count = chart.node_manager.get_last_row_produced()
         
-        # Count stitches being placed on hold BEFORE moving them
-        # (excluding bind-off stitches)
-        stitches_to_hold = chart.node_manager.get_last_row_unconsumed_stitches()
+        # Count stitches being placed on hold BEFORE moving them (same source as set_stitches_on_hold)
+        unconsumed = chart.node_manager.get_last_row_unconsumed_stitches()
+        if unconsumed:
+            stitches_to_hold = unconsumed
+        else:
+            stitches_to_hold = chart.node_manager.get_last_row_stitches()
         count_on_hold = sum(1 for stitch in stitches_to_hold if stitch.type != "bo")
         
-        # Move stitches to hold (this updates last_row_produced)
-        chart.node_manager.set_stitches_on_hold()
+        # Move stitches to named hold slot (this updates last_row_produced)
+        chart.node_manager.set_stitches_on_hold(name)
         new_count = chart.node_manager.get_last_row_produced()
         
         # Record operation in stitch counter (consuming stitches from active count)

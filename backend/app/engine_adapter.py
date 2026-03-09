@@ -74,9 +74,6 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
     errors: list[PreviewError] = []
     row_meta: list[RowMeta] = []
 
-    # Simple "last hold slot" for MVP. Later we can support named hold buffers.
-    last_hold: Optional[list] = None
-
     # For join, we need charts by name. MVP: create/join only if referenced charts exist in IR.
     # We execute joins by constructing the other chart up to its full program first if needed.
     created_charts: Dict[str, object] = {program.name: chart}
@@ -103,7 +100,7 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
                 idx,
                 row_meta_out=None,
                 errors_out=None,
-                hold_slot=None,
+                hold_slot={},
                 ensure_chart_built_fn=None,
                 created_charts=None,
             )
@@ -132,15 +129,12 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
             chart_obj.place_marker(cmd.side, cmd.position)
             return
         if isinstance(cmd, PlaceOnHold):
-            chart_obj.place_on_hold()
-            # Store the stitches we just put on hold (current hold), not the previous hold.
-            if hold_slot is not None:
-                hold_slot["last_hold"] = chart_obj.get_stitches_on_hold()
+            chart_obj.place_on_hold(cmd.name)
             return
         if isinstance(cmd, PlaceOnNeedle):
-            if hold_slot is None or hold_slot.get("last_hold") is None:
-                raise ValueError("place_on_needle requires a previous place_on_hold (MVP uses a single hold slot).")
-            chart_obj.place_on_needle(hold_slot["last_hold"], cmd.join_side)
+            from_hold = getattr(cmd, "from_hold", None) or getattr(cmd, "source", "last")
+            cast_on_between = getattr(cmd, "cast_on_between", 0) or 0
+            chart_obj.place_on_needle_from_hold(from_hold=from_hold, join_side=cmd.join_side, cast_on_between=cast_on_between)
             return
         if isinstance(cmd, JoinCharts):
             if ensure_chart_built_fn is None:
@@ -185,8 +179,6 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
 
         raise ValueError(f"Unsupported command op: {cmd.op}")
 
-    hold_slot = {"last_hold": None}
-
     for cmd_index, cmd in enumerate(program.commands):
         try:
             _execute_command(
@@ -195,7 +187,7 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
                 cmd_index,
                 row_meta_out=row_meta,
                 errors_out=errors,
-                hold_slot=hold_slot,
+                hold_slot={},
                 ensure_chart_built_fn=ensure_chart_built,
                 created_charts=created_charts,
             )

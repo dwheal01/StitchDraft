@@ -39,9 +39,9 @@ class ChartQueries:
                 row_num += last_row_stitches[-1].row
         return row_num
     
-    def get_stitches_on_hold(self) -> List[Node]:
-        """Get stitches currently on hold."""
-        return self._node_manager.get_stitches_on_hold()
+    def get_stitches_on_hold(self, name: str = None) -> List[Node]:
+        """Get stitches currently on hold for the given slot name (default 'last')."""
+        return self._node_manager.get_stitches_on_hold(name)
     
     def get_markers(self, side: str) -> List[int]:
         """Get all marker positions for a given side."""

@@ -284,6 +284,20 @@ MVP rendering can be simple:
 - JSON IR export and load
 - Python script export (`/export/python`) producing a runnable `flirt_like.py`
 
+### Milestone F — Stitch semantics parity (cast-on+, rm, bo)
+- Engine and PatternParser fully support:
+  - Additional cast-on stitches after start (API + DSL).
+  - Marker removal semantics (`rm` in pattern string) consistent with marker placement and tracking.
+  - Bind-off operations (`bo`, `boN`) that correctly consume stitches and update counts.
+- IR and block editor expose `cast_on_additional` (Cast On Additional block) so programs in blocks can reproduce flows in `engine/main.py` and `engine/flirt.py`.
+- Preview payload correctly reflects these operations in `rows` and `rowMeta` (stitch counts, markers); no crashes when used.
+- Regression tests for raglan, raglan_back, sleeve, and lobster_back flows pass.
+
+### Named holds (reconnect workflow)
+- **Place on hold** accepts a **name** (e.g. `"left"`, `"right"`); unconsumed stitches go into that slot.
+- **Place on needle** accepts **from_hold** (name) and **join_side**; stitches from that slot are placed back and the slot is cleared.
+- Workflow: place on hold name "left", place on hold name "right", place on needle from hold "left" and work the left, then place on needle from hold "right" and work a final row (e.g. k across, co4, k across) to reconnect after bind-off. Default name is `"last"` for backward compatibility.
+
 ---
 
 ## Definition of Done (MVP)

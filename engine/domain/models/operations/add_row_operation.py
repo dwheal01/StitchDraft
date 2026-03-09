@@ -15,6 +15,10 @@ class AddRowOperation(IChartOperation):
         if pattern is None:
             raise ValueError("Pattern is required for add_row operation")
         
+        # Normalize list to single pattern (e.g. add_round(["repeat(k2, inc)"]) from main.py)
+        if isinstance(pattern, list):
+            pattern = pattern[0] if len(pattern) == 1 else ",".join(str(p) for p in pattern)
+        
         if isinstance(pattern, int):
             new_row = chart.row_manager.duplicate_row(pattern)
             # For duplicate_row, consumed and produced are the same (no net change)

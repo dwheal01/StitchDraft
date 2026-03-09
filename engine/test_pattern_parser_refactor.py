@@ -176,6 +176,36 @@ def test_work_est():
     print("✓ All work est tests passed")
 
 
+def test_repeat_co_repeat_in_middle():
+    """Test repeat(k1), co4, repeat(k1) expands to 2 k, 4 co, 3 k (cast-on in middle)."""
+    print("\n=== Testing repeat(k1), co4, repeat(k1) (co in middle) ===")
+    marker_manager = MarkerManager()
+    parser = PatternParser(marker_provider=marker_manager)
+    result = parser.expand_pattern("repeat(k1), co4, repeat(k1)", 5, "RS")
+    expected_stitches = ["k", "k", "co", "co", "co", "co", "k", "k", "k"]
+    assert result.stitches == expected_stitches, (
+        f"Expected {expected_stitches}, got {result.stitches}"
+    )
+    assert result.consumed == 5, f"Should consume 5, got {result.consumed}"
+    assert result.produced == 9, f"Should produce 9 (2+4+3), got {result.produced}"
+    print("✓ repeat(k1), co4, repeat(k1) expands to 2 k, 4 co, 3 k")
+
+
+def test_repeat_between_fixed_stitches():
+    """Test k2, dec, repeat(k1), dec, k2 with 10 sts: repeat fills only the middle (2 sts)."""
+    print("\n=== Testing k2, dec, repeat(k1), dec, k2 (10 sts) ===")
+    marker_manager = MarkerManager()
+    parser = PatternParser(marker_provider=marker_manager)
+    result = parser.expand_pattern("k2, dec, repeat(k1), dec, k2", 10, "RS")
+    expected_stitches = ["k", "k", "dec", "k", "k", "dec", "k", "k"]
+    assert result.stitches == expected_stitches, (
+        f"Expected {expected_stitches}, got {result.stitches}"
+    )
+    assert result.consumed == 10, f"Should consume 10, got {result.consumed}"
+    assert result.produced == 8, f"Should produce 8, got {result.produced}"
+    print("✓ k2, dec, repeat(k1), dec, k2 expands to k, k, dec, k, k, dec, k, k")
+
+
 def run_all_tests():
     """Run all PatternParser refactoring tests."""
     print("=" * 60)
@@ -189,6 +219,8 @@ def run_all_tests():
         test_factory_integration()
         test_factory_creation()
         test_work_est()
+        test_repeat_co_repeat_in_middle()
+        test_repeat_between_fixed_stitches()
         
         print("\n" + "=" * 60)
         print("✓ ALL TESTS PASSED!")

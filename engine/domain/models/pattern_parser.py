@@ -94,14 +94,42 @@ class PatternParser:
         for i, segment in enumerate(segments):
             num_increases = 0
             num_decreases = 0
-            repeat_idx = -1
             tokens = self.split_tokens(segment)
+            repeat_indices = [j for j, t in enumerate(tokens) if t.startswith("repeat(") and t.endswith(")")]
             for j, token in enumerate(tokens):
                 if token.startswith("repeat(") and token.endswith(")"):
-                    if repeat_idx != -1:
-                        raise ValueError(f"Repeat found in segment {i} ('{segment}') more than once")
-                    repeat_idx = j
-                    leading_sts = produced + bind_off_count
+                    # Multiple repeats allowed: fill a share of remaining; reserve consumption for tokens after this repeat.
+                    rest_consumption = self._consumption_of_tokens(tokens, j + 1)
+                    remaining = noted_markers[i] - consumed - rest_consumption
+                    remaining = max(0, remaining)
+                    num_repeats_left = len([r for r in repeat_indices if r >= j])
+                    fill_count = remaining // num_repeats_left if num_repeats_left else 0
+                    leading_sts = len(expanded)
+                    inner = token[len("repeat("):-1].strip()
+                    inner_tokens = self.split_tokens(inner)
+                    for _ in range(fill_count):
+                        for inner_token in inner_tokens:
+                            s, count = self.parse_token(inner_token)
+                            if s == "inc":
+                                num_increases += count
+                            elif s == "dec":
+                                num_decreases += count
+                            if s == "pm":
+                                for _ in range(max(count, 1)):
+                                    markers.append(produced)
+                                continue
+                            for _ in range(count):
+                                cons, prod = self.CONSUME_PRODUCE.get(s, (1, 1))
+                                if consumed + cons > noted_markers[i]:
+                                    break
+                                consumed += cons
+                                produced += prod
+                                expanded.insert(leading_sts, s)
+                                leading_sts += 1
+                            if consumed >= noted_markers[i]:
+                                break
+                        if consumed >= noted_markers[i]:
+                            break
                 else:
                     s, count = self.parse_token(token)
                     s = self._normalize_work_est(s)
@@ -157,32 +185,6 @@ class PatternParser:
                         if s == "bo":
                             bind_off_count += 1
                         expanded.append(s)
-            if repeat_idx != -1:
-               token = tokens[repeat_idx]
-               inner = token[len("repeat("):-1].strip()
-               inner_tokens = self.split_tokens(inner)
-               for _ in range(noted_markers[i] - consumed):
-                  for inner_token in inner_tokens:
-                     s, count = self.parse_token(inner_token)
-                     if s == "inc":
-                        num_increases += count
-                     elif s == "dec":
-                        num_decreases += count
-                     if s == "pm":
-                        # pm does not consume or produce; store position count times
-                        for _ in range(max(count, 1)):
-                           markers.append(produced)
-                        continue
-                     for _ in range(count):
-                        cons, prod = self.CONSUME_PRODUCE.get(s, (1, 1))
-                        if consumed + cons > noted_markers[i]:
-                           break
-                        consumed += cons
-                        produced += prod
-                        expanded.insert(leading_sts, s)
-                        leading_sts += 1
-                     if consumed >= noted_markers[i]:
-                        break
             # Validate that this segment consumed exactly the expected number of stitches
             # if consumed != noted_markers[i]:
             #     raise ValueError(

@@ -48,12 +48,15 @@ class PlaceMarker(BaseModel):
 
 class PlaceOnHold(BaseModel):
     op: Literal["place_on_hold"]
+    name: str = "last"
 
 
 class PlaceOnNeedle(BaseModel):
     op: Literal["place_on_needle"]
     join_side: StartSide
-    source: str
+    from_hold: str = "last"
+    source: str = "last"  # backward compat; prefer from_hold when both present
+    cast_on_between: int = 0  # optional: insert N cast-on stitches between needle and hold
 
 
 class JoinCharts(BaseModel):

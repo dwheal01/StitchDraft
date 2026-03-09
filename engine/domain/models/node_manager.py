@@ -1,23 +1,26 @@
-from typing import List
+from typing import Dict, List
 from engine.data.models.node import Node
 
 class NodeManager:
     """Handles creation and management of knitting nodes."""
-    
+
+    DEFAULT_HOLD_NAME = "last"
+
     def __init__(self):
         self._nodes: List[Node] = []
         self._node_counter = 0
         self._last_row_stitches: List[Node] = []
         self._last_row_unconsumed_stitches: List[Node] = []
-        self._stitches_on_hold: List[Node] = []
+        self._hold_slots: Dict[str, List[Node]] = {}
         self._last_row_produced = len(self._last_row_stitches)
     
     def set_last_row_unconsumed_stitches(self, unconsumed_stitches: List[Node]) -> None:
         self._last_row_unconsumed_stitches = unconsumed_stitches
     
-    def get_stitches_on_hold(self) -> List[Node]:
-        """Get stitches on hold (returns defensive copy)."""
-        return list(self._stitches_on_hold)
+    def get_stitches_on_hold(self, name: str = None) -> List[Node]:
+        """Get stitches on hold for the given slot name (returns defensive copy). Default name is 'last'."""
+        slot_name = name if name is not None else self.DEFAULT_HOLD_NAME
+        return list(self._hold_slots.get(slot_name, []))
     
     def get_nodes(self) -> List[Node]:
         """Get all nodes (returns defensive copy)."""
@@ -59,24 +62,34 @@ class NodeManager:
         """Increment the node counter by the specified amount."""
         self._node_counter += amount
     
-    def set_stitches_on_hold(self) -> int:
-        # Copy so we don't share the list with _last_row_unconsumed_stitches.
-        self._stitches_on_hold = list(self._last_row_unconsumed_stitches)
+    def set_stitches_on_hold(self, name: str = None) -> int:
+        """Put current unconsumed stitches into the named hold slot (overwrite). Default name is 'last'."""
+        slot_name = name if name is not None else self.DEFAULT_HOLD_NAME
+        # When last row consumed all stitches (unconsumed empty), put entire needle on hold so needle clears.
+        if self._last_row_unconsumed_stitches:
+            stitches_to_hold = list(self._last_row_unconsumed_stitches)
+        else:
+            stitches_to_hold = list(self._last_row_stitches)
+        self._hold_slots[slot_name] = stitches_to_hold
         count = 0
-        for stitch in self._stitches_on_hold:
+        for stitch in stitches_to_hold:
             self._last_row_stitches.remove(stitch)
             if stitch.type != "bo":
                 count += 1
         self.set_last_row_produced(self._last_row_produced - count)
-        # Clear unconsumed so the needle state reflects that those stitches are on hold.
         self._last_row_unconsumed_stitches = []
-        return len(self._stitches_on_hold)
-    
-    def places_stitches_on_needle(self, stitches_on_hold: List[Node]) -> None:
-        """Place stitches on needle and update counts."""
+        return len(stitches_to_hold)
+
+    def clear_hold(self, name: str = None) -> None:
+        """Clear the named hold slot."""
+        slot_name = name if name is not None else self.DEFAULT_HOLD_NAME
+        self._hold_slots[slot_name] = []
+
+    def places_stitches_on_needle(self, stitches_on_hold: List[Node], from_hold_name: str = None) -> None:
+        """Place stitches on needle, update counts, and clear the named hold slot."""
+        slot_name = from_hold_name if from_hold_name is not None else self.DEFAULT_HOLD_NAME
         self._last_row_stitches.extend(stitches_on_hold)
-        # clear stitches on hold
-        # loop through stitches on hold and count all non "bo" stitches
+        self._hold_slots[slot_name] = []
         num_stitches_on_needle = 0
         for stitch in self._last_row_stitches:
             if stitch.type != "bo":

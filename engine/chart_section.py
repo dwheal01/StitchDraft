@@ -92,9 +92,9 @@ class ChartSection:
         """Get the current number of stitches."""
         return self.chart_queries.get_current_num_of_stitches()
     
-    def get_stitches_on_hold(self) -> List[Node]:
-        """Get stitches currently on hold."""
-        return self.chart_queries.get_stitches_on_hold()
+    def get_stitches_on_hold(self, name: str = None) -> List[Node]:
+        """Get stitches currently on hold for the given slot name (default 'last')."""
+        return self.chart_queries.get_stitches_on_hold(name)
     
     def get_row_num(self, side: str) -> int:
         """Get the row number for a given side."""
@@ -186,30 +186,45 @@ class ChartSection:
                 )
     
     # Operations - delegate to OperationRegistry or implement directly
-    def place_on_hold(self) -> List[Node]:
-        """Place the unconsumed stitches on hold and return the previous stitches on hold."""
-        previous_stitches_on_hold = self.node_manager.get_stitches_on_hold()
+    def place_on_hold(self, name: str = None) -> List[Node]:
+        """Place the unconsumed stitches on hold in the named slot. Returns previous stitches in that slot."""
+        hold_name = name if name is not None else self.node_manager.DEFAULT_HOLD_NAME
+        previous_stitches_on_hold = self.node_manager.get_stitches_on_hold(hold_name)
         
         # Calculate stitches to be placed on hold for validation
         stitches_to_hold = self.node_manager.get_last_row_unconsumed_stitches()
         count_on_hold = sum(1 for stitch in stitches_to_hold if stitch.type != "bo")
         
         self._validate_and_execute_operation(
-            'place_on_hold', 
-            {},
+            'place_on_hold',
+            {'name': hold_name},
             consumed=count_on_hold,
             produced=0
         )
         return previous_stitches_on_hold
-    
-    def place_on_needle(self, stitches_on_hold: List[Node], join_side: str) -> None:
-        """Place the stitches on needle."""
-        # Calculate stitches to be placed on needle for validation
-        count_on_needle = sum(1 for stitch in stitches_on_hold if stitch.type != "bo")
-        
+
+    def place_on_needle_from_hold(self, from_hold: str = None, join_side: str = "RS", cast_on_between: int = 0) -> None:
+        """Place stitches from the named hold slot back on the needle. Optionally insert cast_on_between new stitches between current needle and hold."""
+        hold_name = from_hold if from_hold is not None else self.node_manager.DEFAULT_HOLD_NAME
+        stitches_on_hold = self.node_manager.get_stitches_on_hold(hold_name)
+        if not stitches_on_hold:
+            raise ValueError(f"No stitches in hold '{hold_name}'")
+        count_on_needle = sum(1 for stitch in stitches_on_hold if stitch.type != "bo") + max(0, cast_on_between)
         self._validate_and_execute_operation(
             'place_on_needle',
-            {'stitches_on_hold': stitches_on_hold, 'join_side': join_side},
+            {'from_hold': hold_name, 'join_side': join_side, 'cast_on_between': cast_on_between},
+            consumed=0,
+            produced=count_on_needle
+        )
+    
+    def place_on_needle(self, stitches_on_hold: List[Node], join_side: str) -> None:
+        """Place the given stitches on needle (e.g. from a specific hold by name via get_stitches_on_hold)."""
+        # Calculate stitches to be placed on needle for validation
+        count_on_needle = sum(1 for stitch in stitches_on_hold if stitch.type != "bo")
+        from_hold = self.node_manager.DEFAULT_HOLD_NAME
+        self._validate_and_execute_operation(
+            'place_on_needle',
+            {'stitches_on_hold': stitches_on_hold, 'join_side': join_side, 'from_hold': from_hold},
             consumed=0,
             produced=count_on_needle
         )
