@@ -2,6 +2,7 @@ import * as Blockly from 'blockly/core'
 
 const CHART_BLOCK_TYPE = 'chart_create'
 const CMD_CAST_ON_START_TYPE = 'cmd_cast_on_start'
+const CMD_CAST_ON_ADDITIONAL_TYPE = 'cmd_cast_on_additional'
 const CMD_ADD_ROW_TYPE = 'cmd_add_row'
 const CMD_REPEAT_ROWS_TYPE = 'cmd_repeat_rows'
 const CMD_ADD_ROUND_TYPE = 'cmd_add_round'
@@ -15,6 +16,7 @@ const PATTERN_ROW_TYPE = 'pattern_row'
 export const BlockTypes = {
   CHART: CHART_BLOCK_TYPE,
   CAST_ON_START: CMD_CAST_ON_START_TYPE,
+  CAST_ON_ADDITIONAL: CMD_CAST_ON_ADDITIONAL_TYPE,
   ADD_ROW: CMD_ADD_ROW_TYPE,
   REPEAT_ROWS: CMD_REPEAT_ROWS_TYPE,
   ADD_ROUND: CMD_ADD_ROUND_TYPE,
@@ -89,6 +91,24 @@ export function registerKnittingBlocks(): void {
       nextStatement: 'COMMAND',
       colour: 120,
       tooltip: 'Cast on the initial stitch count for the chart.',
+      helpUrl: '',
+    },
+    {
+      type: CMD_CAST_ON_ADDITIONAL_TYPE,
+      message0: 'cast on additional %1',
+      args0: [
+        {
+          type: 'field_number',
+          name: 'COUNT',
+          value: 1,
+          min: 1,
+          precision: 1,
+        },
+      ],
+      previousStatement: 'COMMAND',
+      nextStatement: 'COMMAND',
+      colour: 120,
+      tooltip: 'Cast on more stitches after the first row/round (e.g. after add round).',
       helpUrl: '',
     },
     {
@@ -215,18 +235,29 @@ export function registerKnittingBlocks(): void {
     },
     {
       type: CMD_PLACE_ON_HOLD_TYPE,
-      message0: 'place on hold',
-      args0: [],
+      message0: 'place on hold name %1',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'last',
+        },
+      ],
       previousStatement: 'COMMAND',
       nextStatement: 'COMMAND',
       colour: 40,
-      tooltip: 'Place unconsumed stitches on hold.',
+      tooltip: 'Place unconsumed stitches on hold. Name the slot (e.g. left, right) to use with place on needle.',
       helpUrl: '',
     },
     {
       type: CMD_PLACE_ON_NEEDLE_TYPE,
-      message0: 'place on needle join side %1',
+      message0: 'place on needle from hold %1 join side %2',
       args0: [
+        {
+          type: 'field_input',
+          name: 'FROM_HOLD',
+          text: 'last',
+        },
         {
           type: 'field_dropdown',
           name: 'JOIN_SIDE',
@@ -239,7 +270,7 @@ export function registerKnittingBlocks(): void {
       previousStatement: 'COMMAND',
       nextStatement: 'COMMAND',
       colour: 40,
-      tooltip: 'Place stitches from the hold back on the needle on RS/WS.',
+      tooltip: 'Place stitches from the named hold back on the needle (e.g. left, right).',
       helpUrl: '',
     },
     {

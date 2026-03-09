@@ -23,8 +23,8 @@ export type KnittingCommand =
   | { op: 'repeat_rows'; times: number; patterns: string[] }
   | { op: 'repeat_rounds'; times: number; patterns: string[] }
   | { op: 'place_marker'; side: StartSide; position: number }
-  | { op: 'place_on_hold' }
-  | { op: 'place_on_needle'; join_side: StartSide; source: string }
+  | { op: 'place_on_hold'; name?: string }
+  | { op: 'place_on_needle'; join_side: StartSide; from_hold?: string; source?: string }
   | { op: 'join'; left_chart_name: string; right_chart_name: string }
   | { op: 'join_and_knit'; right_chart_name: string; pattern1: string; pattern2: string }
 

@@ -37,6 +37,15 @@ export function compileWorkspaceToIr(workspace: Blockly.Workspace): CompileResul
           commands.push({ op: 'cast_on_start', count } as const)
           break
         }
+        case BlockTypes.CAST_ON_ADDITIONAL: {
+          const count = asNumber(cmd.getFieldValue('COUNT'))
+          if (count >= 1) {
+            commands.push({ op: 'cast_on_additional', count } as const)
+          } else {
+            errors.push('Cast on additional requires count >= 1.')
+          }
+          break
+        }
         case BlockTypes.ADD_ROW: {
           const pattern = String(cmd.getFieldValue('PATTERN') ?? '').trim()
           commands.push({ op: 'add_row', pattern } as const)
@@ -92,12 +101,14 @@ export function compileWorkspaceToIr(workspace: Blockly.Workspace): CompileResul
           break
         }
         case BlockTypes.PLACE_ON_HOLD: {
-          commands.push({ op: 'place_on_hold' } as const)
+          const name = String(cmd.getFieldValue('NAME') ?? 'last').trim() || 'last'
+          commands.push({ op: 'place_on_hold', name } as const)
           break
         }
         case BlockTypes.PLACE_ON_NEEDLE: {
           const join_side = (cmd.getFieldValue('JOIN_SIDE') ?? 'RS') as StartSide
-          commands.push({ op: 'place_on_needle', join_side, source: 'last' } as const)
+          const from_hold = String(cmd.getFieldValue('FROM_HOLD') ?? 'last').trim() || 'last'
+          commands.push({ op: 'place_on_needle', join_side, from_hold, source: from_hold } as const)
           break
         }
         case BlockTypes.JOIN_CHARTS: {

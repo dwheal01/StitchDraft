@@ -103,24 +103,37 @@ function mockWorkspaceMulti(
 }
 
 describe('compileToIr', () => {
-  it('compiles place_on_hold to IR', () => {
-    const workspace = mockWorkspace('hold_chart', [
+  it('compiles cast_on_additional to IR', () => {
+    const workspace = mockWorkspace('co_add_chart', [
       { type: BlockTypes.CAST_ON_START, fields: { COUNT: 10 } },
-      { type: BlockTypes.ADD_ROW, fields: { PATTERN: 'repeat(k1)' } },
-      { type: BlockTypes.PLACE_ON_HOLD },
+      { type: BlockTypes.ADD_ROUND, fields: { PATTERN: 'repeat(k1)' } },
+      { type: BlockTypes.CAST_ON_ADDITIONAL, fields: { COUNT: 2 } },
     ])
 
     const result = compileWorkspaceToIr(workspace as never)
     expect(result.errors).toHaveLength(0)
     const chart = result.ir.charts[0]
-    expect(chart.commands).toContainEqual({ op: 'place_on_hold' })
+    expect(chart.commands).toContainEqual({ op: 'cast_on_additional', count: 2 })
   })
 
-  it('compiles place_on_needle with join_side to IR', () => {
+  it('compiles place_on_hold with name to IR', () => {
+    const workspace = mockWorkspace('hold_chart', [
+      { type: BlockTypes.CAST_ON_START, fields: { COUNT: 10 } },
+      { type: BlockTypes.ADD_ROW, fields: { PATTERN: 'repeat(k1)' } },
+      { type: BlockTypes.PLACE_ON_HOLD, fields: { NAME: 'left' } },
+    ])
+
+    const result = compileWorkspaceToIr(workspace as never)
+    expect(result.errors).toHaveLength(0)
+    const chart = result.ir.charts[0]
+    expect(chart.commands).toContainEqual({ op: 'place_on_hold', name: 'left' })
+  })
+
+  it('compiles place_on_needle with from_hold and join_side to IR', () => {
     const workspace = mockWorkspace('needle_chart', [
       { type: BlockTypes.CAST_ON_START, fields: { COUNT: 10 } },
-      { type: BlockTypes.PLACE_ON_HOLD },
-      { type: BlockTypes.PLACE_ON_NEEDLE, fields: { JOIN_SIDE: 'WS' } },
+      { type: BlockTypes.PLACE_ON_HOLD, fields: { NAME: 'last' } },
+      { type: BlockTypes.PLACE_ON_NEEDLE, fields: { FROM_HOLD: 'left', JOIN_SIDE: 'WS' } },
     ])
 
     const result = compileWorkspaceToIr(workspace as never)
@@ -129,7 +142,8 @@ describe('compileToIr', () => {
     expect(chart.commands).toContainEqual({
       op: 'place_on_needle',
       join_side: 'WS',
-      source: 'last',
+      from_hold: 'left',
+      source: 'left',
     })
   })
 
