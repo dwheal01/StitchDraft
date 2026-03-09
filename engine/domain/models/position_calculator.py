@@ -79,11 +79,16 @@ class PositionCalculator:
         return stitch in ["k", "p", "bo"]
     
     def _calculate_increase_decrease_anchor(self, i: int, prev_i: int, previous_stitches: List[Node], side: str) -> float:
-        """Calculate anchor position for increase/decrease stitches."""
+        """Calculate anchor position for increase/decrease stitches (and co: cast-on beyond end of row)."""
         if i == 0:
             return previous_stitches[0].fx - 50
-        elif i == len(previous_stitches):
-            return previous_stitches[-1].fx + 50
+        elif i >= len(previous_stitches):
+            # Stitches beyond previous row (e.g. cast-on at end): use same spacing as row to avoid shift
+            if len(previous_stitches) >= 2:
+                spacing = (previous_stitches[-1].fx - previous_stitches[0].fx) / (len(previous_stitches) - 1)
+            else:
+                spacing = self.DEFAULT_SPACING if self.DEFAULT_SPACING > 0 else 50
+            return previous_stitches[-1].fx + spacing * (i - len(previous_stitches) + 1)
         else:
             if side == "RS":
                 return (previous_stitches[prev_i-1].fx + previous_stitches[prev_i].fx) / 2

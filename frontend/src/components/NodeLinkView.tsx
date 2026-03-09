@@ -37,6 +37,7 @@ export function NodeLinkView({ nodes }: Props) {
     const key = t.toLowerCase()
     if (key === 'k') return '#4A90E2'
     if (key === 'p') return '#524be3'
+    if (key === 'co') return '#4A90E2' // same as k so cast-on in row matches cast on additional
     if (key === 'inc') return '#85DCB0'
     if (key === 'dec') return '#E27D60'
     if (key === 'bo') return '#111827'
@@ -53,7 +54,7 @@ export function NodeLinkView({ nodes }: Props) {
               key={n.id}
               cx={n.x}
               cy={n.y}
-              r={n.type === 'k' || n.type === 'p' || n.type === 'inc' || n.type === 'dec' ? 5 : 3}
+              r={n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec' ? 5 : 3}
               fill={colorForType(n.type)}
               stroke={n.type === 'strand' ? 'none' : '#111827'}
               strokeWidth={0.5}

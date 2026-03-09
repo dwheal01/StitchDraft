@@ -39,7 +39,7 @@ class CastOnAdditionalOperation(IChartOperation):
                 new_fx = last_fx + (i + 1) * spacing
             else:
                 new_fx = last_fx - (i + 1) * spacing
-            node = chart.node_manager.create_stitch_node("k", new_fx, current_fy, current_row_number)
+            node = chart.node_manager.create_stitch_node("co", new_fx, current_fy, current_row_number)
             new_nodes.append(node)
             chart.node_manager.append_to_last_row_stitches([node])
             chart._notify_node_added(node)
