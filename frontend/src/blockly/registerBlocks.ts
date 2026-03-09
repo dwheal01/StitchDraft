@@ -251,7 +251,7 @@ export function registerKnittingBlocks(): void {
     },
     {
       type: CMD_PLACE_ON_NEEDLE_TYPE,
-      message0: 'place on needle from hold %1 join side %2',
+      message0: 'place on needle from hold %1 join side %2 cast on between %3',
       args0: [
         {
           type: 'field_input',
@@ -266,11 +266,18 @@ export function registerKnittingBlocks(): void {
             ['WS', 'WS'],
           ],
         },
+        {
+          type: 'field_number',
+          name: 'CAST_ON_BETWEEN',
+          value: 0,
+          min: 0,
+          max: 1000,
+        },
       ],
       previousStatement: 'COMMAND',
       nextStatement: 'COMMAND',
       colour: 40,
-      tooltip: 'Place stitches from the named hold back on the needle (e.g. left, right).',
+      tooltip: 'Place stitches from the named hold back on the needle. Optionally cast on N stitches between (e.g. 4 to rejoin with a gap).',
       helpUrl: '',
     },
     {

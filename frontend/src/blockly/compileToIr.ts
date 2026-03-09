@@ -108,7 +108,8 @@ export function compileWorkspaceToIr(workspace: Blockly.Workspace): CompileResul
         case BlockTypes.PLACE_ON_NEEDLE: {
           const join_side = (cmd.getFieldValue('JOIN_SIDE') ?? 'RS') as StartSide
           const from_hold = String(cmd.getFieldValue('FROM_HOLD') ?? 'last').trim() || 'last'
-          commands.push({ op: 'place_on_needle', join_side, from_hold, source: from_hold } as const)
+          const cast_on_between = Math.max(0, Number(cmd.getFieldValue('CAST_ON_BETWEEN') ?? 0) || 0)
+          commands.push({ op: 'place_on_needle', join_side, from_hold, source: from_hold, cast_on_between } as const)
           break
         }
         case BlockTypes.JOIN_CHARTS: {
