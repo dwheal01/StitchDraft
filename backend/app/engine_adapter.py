@@ -86,15 +86,18 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
         other_program = all_programs.get(chart_name)
         if other_program is None:
             raise ValueError(f"Unknown chart referenced: '{chart_name}'")
-        other_preview = execute_chart_program(other_program, all_programs)
-        # Rebuild chart for joining (preview execution already made one, but not returned).
-        # For MVP: re-execute to get the ChartSection instance.
+        # Build the referenced chart directly from its program without
+        # re-entering the full preview pipeline to avoid deep recursion.
         other_chart = service.create_chart(
             name=other_program.name,
             start_side=other_program.start_side,
             sts=other_program.sts,
             rows=other_program.rows,
         )
+        # Register before executing commands so that if this chart's join
+        # references itself (left side), we return this in-progress chart
+        # instead of re-entering and recursing.
+        created_charts[chart_name] = other_chart
         for idx, cmd in enumerate(other_program.commands):
             _execute_command(
                 other_chart,
@@ -103,10 +106,9 @@ def execute_chart_program(program: ChartProgram, all_programs: Dict[str, ChartPr
                 row_meta_out=None,
                 errors_out=None,
                 hold_slot={},
-                ensure_chart_built_fn=None,
-                created_charts=None,
+                ensure_chart_built_fn=ensure_chart_built,
+                created_charts=created_charts,
             )
-        created_charts[chart_name] = other_chart
         return other_chart
 
     def _execute_command(

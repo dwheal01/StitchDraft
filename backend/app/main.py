@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.engine_adapter import execute_chart_program
 from backend.app.ir_models import KnittingIR
 from backend.app.preview_models import PreviewResponse
+from backend.app.join_graph import validate_join_graph
 from backend.app.torso_generator import CYC_MEASUREMENTS, generate_torso_svg_custom, generate_torso_svg_from_size
 from backend.app.torso_models import TorsoSvgRequest, TorsoSvgResponse
 
@@ -32,7 +33,18 @@ def healthz() -> dict:
 @app.post("/preview", response_model=PreviewResponse)
 def preview(ir: KnittingIR) -> PreviewResponse:
     programs_by_name = {c.name: c for c in ir.charts}
-    previews = [execute_chart_program(program, programs_by_name) for program in ir.charts]
+    # Validate join dependency graph (detect cycles) before executing.
+    order, cycle = validate_join_graph(programs_by_name)
+    if cycle is not None:
+        cycle_str = " -> ".join(cycle)
+        raise HTTPException(status_code=400, detail=f"Join cycle detected: {cycle_str}")
+
+    # Execute charts in dependency order so any chart referenced in a join
+    # is built before the chart that joins it.
+    programs_by_order = [programs_by_name[name] for name in order if name in programs_by_name]
+    previews_by_name = {p.chartName: p for p in (execute_chart_program(p, programs_by_name) for p in programs_by_order)}
+    # Return previews in original IR order for consistent UI.
+    previews = [previews_by_name[p.name] for p in ir.charts if p.name in previews_by_name]
     return PreviewResponse(charts=previews)
 
 
