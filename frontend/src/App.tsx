@@ -31,6 +31,7 @@ function App() {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [torsoByChart, setTorsoByChart] = useState<Record<string, TorsoSvgResponse | null>>({})
   const [torsoOpenByChart, setTorsoOpenByChart] = useState<Record<string, boolean>>({})
+  const [collapsedByChart, setCollapsedByChart] = useState<Record<string, boolean>>({})
   const [fullScreenChartName, setFullScreenChartName] = useState<string | null>(null)
   const [fullScreenTorsoChartName, setFullScreenTorsoChartName] = useState<string | null>(null)
 
@@ -106,12 +107,22 @@ function App() {
           {preview ? (
             <div className="preview">
               {preview.charts.map((c) => (
-                <div key={c.chartName} className="preview__chart">
+                <div
+                  key={c.chartName}
+                  className={`preview__chart${collapsedByChart[c.chartName] ? ' preview__chart--collapsed' : ''}`}
+                >
                   <div className="preview__chartHeader">
                     <div className="preview__chartName">{c.chartName}</div>
                     <div className="preview__chartMeta">
                       {c.rows.length} row(s), {c.currentStitchCount} st(s)
                     </div>
+                    {collapsedByChart[c.chartName] && (c.errors.length > 0 || c.warnings.length > 0) ? (
+                      <div className="preview__chartMeta">
+                        {c.errors.length > 0 ? `Errors: ${c.errors.length}` : null}
+                        {c.errors.length > 0 && c.warnings.length > 0 ? ' | ' : null}
+                        {c.warnings.length > 0 ? `Warnings: ${c.warnings.length}` : null}
+                      </div>
+                    ) : null}
                     <button
                       type="button"
                       className="torsoPanel__toggle"
@@ -127,73 +138,94 @@ function App() {
                     >
                       Download chart
                     </button>
-                  </div>
-
-                  {c.errors.length > 0 ? (
-                    <div className="errors" role="alert">
-                      <div className="errors__title">Execution errors</div>
-                      <ul className="errors__list">
-                        {c.errors.map((e) => (
-                          <li key={`${c.chartName}-${e.commandIndex}`}>{`Command ${e.commandIndex}: ${e.message}`}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  {c.warnings.length > 0 ? (
-                    <div className="errors" role="status">
-                      <div className="errors__title">Warnings</div>
-                      <ul className="errors__list">
-                        {c.warnings.map((w) => (
-                          <li key={`${c.chartName}-warn-${w.commandIndex}-${w.message}`}>{`Command ${w.commandIndex}: ${w.message}`}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  <div className="preview__viz">
-                    <div className="preview__rowMeta">
-                      Markers RS: {c.markers.RS.join(', ') || '—'} | WS: {c.markers.WS.join(', ') || '—'}
-                    </div>
-                    <NodeLinkView nodes={c.nodes} links={c.links} />
-                  </div>
-
-                  <div className="torsoPanel">
                     <button
+                      type="button"
                       className="torsoPanel__toggle"
+                      aria-expanded={!collapsedByChart[c.chartName]}
                       onClick={() =>
-                        setTorsoOpenByChart((prev) => ({
+                        setCollapsedByChart((prev) => ({
                           ...prev,
                           [c.chartName]: !prev[c.chartName],
                         }))
                       }
                     >
-                      {torsoOpenByChart[c.chartName] ? 'Hide torso view' : 'Show torso view'}
+                      {collapsedByChart[c.chartName] ? 'Expand' : 'Collapse'}
                     </button>
-
-                    {torsoOpenByChart[c.chartName] ? (
-                      <div className="torsoPanel__content">
-                        <div className="torsoPanel__row">
-                          <TorsoControls
-                            onTorsoLoaded={(torso) =>
-                              setTorsoByChart((prev) => ({
-                                ...prev,
-                                [c.chartName]: torso,
-                              }))
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="torsoPanel__toggle"
-                            onClick={() => setFullScreenTorsoChartName(c.chartName)}
-                          >
-                            Full screen
-                          </button>
-                        </div>
-                        <TorsoOverlayView torso={torsoByChart[c.chartName] ?? null} nodes={c.nodes} />
-                      </div>
-                    ) : null}
                   </div>
+
+                  {!collapsedByChart[c.chartName] ? (
+                    <>
+                      {c.errors.length > 0 ? (
+                        <div className="errors" role="alert">
+                          <div className="errors__title">Execution errors</div>
+                          <ul className="errors__list">
+                            {c.errors.map((e) => (
+                              <li
+                                key={`${c.chartName}-${e.commandIndex}`}
+                              >{`Command ${e.commandIndex}: ${e.message}`}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      {c.warnings.length > 0 ? (
+                        <div className="errors" role="status">
+                          <div className="errors__title">Warnings</div>
+                          <ul className="errors__list">
+                            {c.warnings.map((w) => (
+                              <li
+                                key={`${c.chartName}-warn-${w.commandIndex}-${w.message}`}
+                              >{`Command ${w.commandIndex}: ${w.message}`}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      <div className="preview__viz">
+                        <div className="preview__rowMeta">
+                          Markers RS: {c.markers.RS.join(', ') || '—'} | WS: {c.markers.WS.join(', ') || '—'}
+                        </div>
+                        <NodeLinkView nodes={c.nodes} links={c.links} />
+                      </div>
+
+                      <div className="torsoPanel">
+                        <button
+                          className="torsoPanel__toggle"
+                          onClick={() =>
+                            setTorsoOpenByChart((prev) => ({
+                              ...prev,
+                              [c.chartName]: !prev[c.chartName],
+                            }))
+                          }
+                        >
+                          {torsoOpenByChart[c.chartName] ? 'Hide torso view' : 'Show torso view'}
+                        </button>
+
+                        {torsoOpenByChart[c.chartName] ? (
+                          <div className="torsoPanel__content">
+                            <div className="torsoPanel__row">
+                              <TorsoControls
+                                onTorsoLoaded={(torso) =>
+                                  setTorsoByChart((prev) => ({
+                                    ...prev,
+                                    [c.chartName]: torso,
+                                  }))
+                                }
+                              />
+                              <button
+                                type="button"
+                                className="torsoPanel__toggle"
+                                onClick={() => setFullScreenTorsoChartName(c.chartName)}
+                              >
+                                Full screen
+                              </button>
+                            </div>
+                            <TorsoOverlayView torso={torsoByChart[c.chartName] ?? null} nodes={c.nodes} />
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
 
                   <FullScreenOverlay
                     open={fullScreenChartName === c.chartName}

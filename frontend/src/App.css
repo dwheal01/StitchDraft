@@ -56,6 +56,11 @@
 
 .panel--workspace {
   display: flex;
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  height: calc(100vh - 24px);
+  max-height: calc(100vh - 24px);
 }
 
 .panel--ir {
@@ -122,6 +127,10 @@
   padding: 10px;
   background: rgba(0, 0, 0, 0.18);
   margin-bottom: 12px;
+}
+
+.preview__chart--collapsed {
+  padding-bottom: 6px;
 }
 
 .preview__chartHeader {
