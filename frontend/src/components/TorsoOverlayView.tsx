@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TorsoSvgResponse } from '../api/client'
+import { chartToDataUrl, getChartExtent } from '../utils/chartSnapshot'
 
 type NodeVm = {
   id: string
@@ -53,6 +54,8 @@ function colorForType(t: string) {
 
 export function TorsoOverlayView({ torso, nodes }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const pendingOffsetRef = useRef<{ dx: number; dy: number } | null>(null)
+  const rafIdRef = useRef<number | null>(null)
 
   const [dragging, setDragging] = useState(false)
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
@@ -78,6 +81,12 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
         yIn: engineUnitsToInches(n.y),
       }))
   }, [engineUnitsToInches, nodes])
+
+  const chartSnapshot = useMemo(() => {
+    const dataUrl = chartToDataUrl(nodes)
+    const extent = getChartExtent(nodes)
+    return dataUrl && extent ? { dataUrl, extent } : null
+  }, [nodes])
 
   const clientToSvgPoint = useCallback((evt: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
     const svg = svgRef.current
@@ -111,15 +120,32 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
       if (!pt) return
       const dx = pt.x - dragStart.x
       const dy = pt.y - dragStart.y
-      setOffset({ dx: offsetAtStart.dx + dx, dy: offsetAtStart.dy + dy })
+      pendingOffsetRef.current = { dx: offsetAtStart.dx + dx, dy: offsetAtStart.dy + dy }
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          if (pendingOffsetRef.current) setOffset(pendingOffsetRef.current)
+          rafIdRef.current = null
+        })
+      }
     },
     [clientToSvgPoint, dragStart, dragging, offsetAtStart.dx, offsetAtStart.dy],
   )
 
   const stopDrag = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
     setDragging(false)
     setDragStart(null)
   }, [])
+
+  useEffect(() => {
+    if (!dragging) return
+    const onWindowMouseUp = () => stopDrag()
+    window.addEventListener('mouseup', onWindowMouseUp)
+    return () => window.removeEventListener('mouseup', onWindowMouseUp)
+  }, [dragging, stopDrag])
 
   if (!torso) {
     return <div className="torsoOverlayEmpty">Generate a torso to view the overlay.</div>
@@ -139,25 +165,36 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
         {/* Torso base (in inches coordinate space) */}
         <g className="torsoOverlayTorso" dangerouslySetInnerHTML={{ __html: torsoInner }} />
 
-        {/* Chart overlay, draggable as a group */}
+        {/* Chart overlay, draggable as a group: snapshot image when available, else circles */}
         <g
           className="torsoOverlayChart"
           transform={`translate(${offset.dx} ${offset.dy})`}
           onMouseDown={onMouseDown}
           style={{ cursor: dragging ? 'grabbing' : 'grab' }}
         >
-          {chartNodesInInches.map((n) => (
-            <circle
-              key={n.id}
-              cx={n.xIn}
-              cy={n.yIn}
-              r={n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec' ? 0.12 : 0.08}
-              fill={colorForType(n.type)}
-              stroke="#111827"
-              strokeWidth={0.02}
-              opacity={0.9}
+          {chartSnapshot ? (
+            <image
+              href={chartSnapshot.dataUrl}
+              x={chartSnapshot.extent.minX / 96}
+              y={chartSnapshot.extent.minY / 96}
+              width={chartSnapshot.extent.width / 96}
+              height={chartSnapshot.extent.height / 96}
+              preserveAspectRatio="xMidYMid meet"
             />
-          ))}
+          ) : (
+            chartNodesInInches.map((n) => (
+              <circle
+                key={n.id}
+                cx={n.xIn}
+                cy={n.yIn}
+                r={n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec' ? 0.12 : 0.08}
+                fill={colorForType(n.type)}
+                stroke="#111827"
+                strokeWidth={0.02}
+                opacity={0.9}
+              />
+            ))
+          )}
         </g>
 
         {/* Optional: a subtle border using viewBox extents */}

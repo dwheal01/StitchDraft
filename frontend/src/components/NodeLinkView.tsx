@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type NodeVm = {
   id: string
@@ -17,14 +17,14 @@ type Props = {
   nodes: NodeVm[]
   // Keep for future use; currently ignored
   links: LinkVm[]
+  /** When true, left-drag pans the chart; Shift+drag measures. */
+  allowPan?: boolean
 }
 
-export function NodeLinkView({ nodes }: Props) {
-  if (!nodes.length) {
-    return <div className="nodeLinkEmpty">No stitches to display yet.</div>
-  }
-
+export function NodeLinkView({ nodes, allowPan = false }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const pendingSelectionRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null)
+  const rafIdRef = useRef<number | null>(null)
 
   const [dragging, setDragging] = useState(false)
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
@@ -38,16 +38,22 @@ export function NodeLinkView({ nodes }: Props) {
 
   const [noSelectionStitches, setNoSelectionStitches] = useState(false)
 
-  const minX = Math.min(...nodes.map((n) => n.x))
-  const maxX = Math.max(...nodes.map((n) => n.x))
-  const minY = Math.min(...nodes.map((n) => n.y))
-  const maxY = Math.max(...nodes.map((n) => n.y))
+  const [panTranslate, setPanTranslate] = useState({ x: 0, y: 0 })
+  const [panDragging, setPanDragging] = useState(false)
+  const [panStart, setPanStart] = useState<{ x: number; y: number } | null>(null)
+  const [panAtStart, setPanAtStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
 
-  const padding = 40
-  const width = Math.max(200, maxX - minX + padding * 2)
-  const height = Math.max(150, maxY - minY + padding * 2)
-
-  const viewBox = `${minX - padding} ${minY - padding} ${width} ${height}`
+  const { viewBox } = useMemo(() => {
+    const padding = 40
+    if (!nodes.length) return { viewBox: '0 0 200 150' }
+    const minX = Math.min(...nodes.map((n) => n.x))
+    const maxX = Math.max(...nodes.map((n) => n.x))
+    const minY = Math.min(...nodes.map((n) => n.y))
+    const maxY = Math.max(...nodes.map((n) => n.y))
+    const width = Math.max(200, maxX - minX + padding * 2)
+    const height = Math.max(150, maxY - minY + padding * 2)
+    return { viewBox: `${minX - padding} ${minY - padding} ${width} ${height}` }
+  }, [nodes])
 
   const colorForType = (t: string) => {
     const key = t.toLowerCase()
@@ -128,18 +134,30 @@ export function NodeLinkView({ nodes }: Props) {
     (evt: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
       const pt = clientToSvgPoint(evt)
       if (!pt) return
-      setDragging(true)
-      setDragStart(pt)
-      setSelection({ x: pt.x, y: pt.y, width: 0, height: 0 })
+      if (allowPan && !evt.shiftKey) {
+        setPanDragging(true)
+        setPanStart(pt)
+        setPanAtStart(panTranslate)
+      } else {
+        setDragging(true)
+        setDragStart(pt)
+        setSelection({ x: pt.x, y: pt.y, width: 0, height: 0 })
+      }
     },
-    [clientToSvgPoint],
+    [allowPan, clientToSvgPoint, panTranslate],
   )
 
   const handleMouseMove = useCallback(
     (evt: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
-      if (!dragging || !dragStart) return
       const pt = clientToSvgPoint(evt)
       if (!pt) return
+      if (panDragging && panStart) {
+        const dx = pt.x - panStart.x
+        const dy = pt.y - panStart.y
+        setPanTranslate({ x: panAtStart.x + dx, y: panAtStart.y + dy })
+        return
+      }
+      if (!dragging || !dragStart) return
       const x1 = dragStart.x
       const y1 = dragStart.y
       const x2 = pt.x
@@ -148,14 +166,33 @@ export function NodeLinkView({ nodes }: Props) {
       const y = Math.min(y1, y2)
       const widthBox = Math.abs(x2 - x1)
       const heightBox = Math.abs(y2 - y1)
-      setSelection({ x, y, width: widthBox, height: heightBox })
+      pendingSelectionRef.current = { x, y, width: widthBox, height: heightBox }
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          if (pendingSelectionRef.current) setSelection(pendingSelectionRef.current)
+          rafIdRef.current = null
+        })
+      }
     },
-    [clientToSvgPoint, dragging, dragStart],
+    [clientToSvgPoint, dragging, dragStart, panAtStart.x, panAtStart.y, panDragging, panStart],
   )
+
+  const stopPanDrag = useCallback(() => {
+    setPanDragging(false)
+    setPanStart(null)
+  }, [])
 
   const handleMouseUp = useCallback(
     (evt: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+      if (panDragging) {
+        stopPanDrag()
+        return
+      }
       if (!dragging || !dragStart) return
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+        rafIdRef.current = null
+      }
       const pt = clientToSvgPoint(evt) ?? dragStart
       setDragging(false)
       const x1 = dragStart.x
@@ -181,15 +218,24 @@ export function NodeLinkView({ nodes }: Props) {
       computeMeasurement({ minX: minSelX, maxX: maxSelX, minY: minSelY, maxY: maxSelY })
       setDragStart(null)
     },
-    [clientToSvgPoint, computeMeasurement, dragStart, dragging],
+    [clientToSvgPoint, computeMeasurement, dragStart, dragging, panDragging, stopPanDrag],
   )
+
+  useEffect(() => {
+    if (!panDragging) return
+    const onWindowMouseUp = () => stopPanDrag()
+    window.addEventListener('mouseup', onWindowMouseUp)
+    return () => window.removeEventListener('mouseup', onWindowMouseUp)
+  }, [panDragging, stopPanDrag])
 
   const measurementLabel = useMemo(() => {
     if (noSelectionStitches) {
       return 'Measurement: no stitches in selection.'
     }
     if (!measurement) {
-      return 'Measurement: drag on the chart to measure an area.'
+      return allowPan
+        ? 'Measurement: Hold Shift and drag on the chart to measure an area.'
+        : 'Measurement: drag on the chart to measure an area.'
     }
     const { numStitches, numRows, widthInches, heightInches } = measurement
     const widthCm = widthInches * 2.54
@@ -197,7 +243,11 @@ export function NodeLinkView({ nodes }: Props) {
     return `Measurement: ~${numStitches} sts × ${numRows} rows, ${widthInches.toFixed(
       2,
     )}" × ${heightInches.toFixed(2)}" (${widthCm.toFixed(1)} cm × ${heightCm.toFixed(1)} cm)`
-  }, [measurement, noSelectionStitches])
+  }, [allowPan, measurement, noSelectionStitches])
+
+  if (!nodes.length) {
+    return <div className="nodeLinkEmpty">No stitches to display yet.</div>
+  }
 
   return (
     <div className="nodeLinkWrapper">
@@ -209,34 +259,37 @@ export function NodeLinkView({ nodes }: Props) {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        style={allowPan ? { cursor: panDragging ? 'grabbing' : 'grab' } : undefined}
       >
-        <g className="nodeLinkNodes">
-          {nodes.map((n) => (
-            <circle
-              key={n.id}
-              cx={n.x}
-              cy={n.y}
-              r={n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec' ? 5 : 3}
-              fill={colorForType(n.type)}
-              stroke={n.type === 'strand' ? 'none' : '#111827'}
-              strokeWidth={0.5}
-              opacity={n.type === 'strand' ? 0.0 : 1}
-            />
-          ))}
-        </g>
-        {selection ? (
-          <g className="nodeLinkMeasurementBox">
-            <rect
-              x={selection.x}
-              y={selection.y}
-              width={selection.width}
-              height={selection.height}
-              fill="rgba(52, 211, 153, 0.16)"
-              stroke="#34d399"
-              strokeWidth={1}
-            />
+        <g transform={`translate(${panTranslate.x} ${panTranslate.y})`}>
+          <g className="nodeLinkNodes">
+            {nodes.map((n) => (
+              <circle
+                key={n.id}
+                cx={n.x}
+                cy={n.y}
+                r={n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec' ? 5 : 3}
+                fill={colorForType(n.type)}
+                stroke={n.type === 'strand' ? 'none' : '#111827'}
+                strokeWidth={0.5}
+                opacity={n.type === 'strand' ? 0.0 : 1}
+              />
+            ))}
           </g>
-        ) : null}
+          {selection ? (
+            <g className="nodeLinkMeasurementBox">
+              <rect
+                x={selection.x}
+                y={selection.y}
+                width={selection.width}
+                height={selection.height}
+                fill="rgba(52, 211, 153, 0.16)"
+                stroke="#34d399"
+                strokeWidth={1}
+              />
+            </g>
+          ) : null}
+        </g>
       </svg>
       <div className="nodeLinkMeasurement">{measurementLabel}</div>
     </div>

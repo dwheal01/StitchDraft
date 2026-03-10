@@ -8,6 +8,20 @@ import { NodeLinkView } from './components/NodeLinkView'
 import type { TorsoSvgResponse } from './api/client'
 import { TorsoControls } from './components/TorsoControls'
 import { TorsoOverlayView } from './components/TorsoOverlayView'
+import { FullScreenOverlay } from './components/FullScreenOverlay'
+import { chartToSvgString } from './utils/chartSnapshot'
+
+function downloadChartAsSvg(chartName: string, nodes: PreviewResponse['charts'][0]['nodes']) {
+  if (nodes.length === 0) return
+  const svg = chartToSvgString(nodes)
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${chartName.replace(/[^a-zA-Z0-9_-]/g, '_')}.svg`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 function App() {
   const [compiled, setCompiled] = useState<KnittingIR | null>(null)
@@ -17,6 +31,8 @@ function App() {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [torsoByChart, setTorsoByChart] = useState<Record<string, TorsoSvgResponse | null>>({})
   const [torsoOpenByChart, setTorsoOpenByChart] = useState<Record<string, boolean>>({})
+  const [fullScreenChartName, setFullScreenChartName] = useState<string | null>(null)
+  const [fullScreenTorsoChartName, setFullScreenTorsoChartName] = useState<string | null>(null)
 
   useEffect(() => {
     if (!compiled) return
@@ -96,6 +112,21 @@ function App() {
                     <div className="preview__chartMeta">
                       {c.rows.length} row(s), {c.currentStitchCount} st(s)
                     </div>
+                    <button
+                      type="button"
+                      className="torsoPanel__toggle"
+                      onClick={() => setFullScreenChartName(c.chartName)}
+                    >
+                      Full screen
+                    </button>
+                    <button
+                      type="button"
+                      className="torsoPanel__toggle"
+                      onClick={() => downloadChartAsSvg(c.chartName, c.nodes)}
+                      disabled={c.nodes.length === 0}
+                    >
+                      Download chart
+                    </button>
                   </div>
 
                   {c.errors.length > 0 ? (
@@ -142,18 +173,46 @@ function App() {
 
                     {torsoOpenByChart[c.chartName] ? (
                       <div className="torsoPanel__content">
-                        <TorsoControls
-                          onTorsoLoaded={(torso) =>
-                            setTorsoByChart((prev) => ({
-                              ...prev,
-                              [c.chartName]: torso,
-                            }))
-                          }
-                        />
+                        <div className="torsoPanel__row">
+                          <TorsoControls
+                            onTorsoLoaded={(torso) =>
+                              setTorsoByChart((prev) => ({
+                                ...prev,
+                                [c.chartName]: torso,
+                              }))
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="torsoPanel__toggle"
+                            onClick={() => setFullScreenTorsoChartName(c.chartName)}
+                          >
+                            Full screen
+                          </button>
+                        </div>
                         <TorsoOverlayView torso={torsoByChart[c.chartName] ?? null} nodes={c.nodes} />
                       </div>
                     ) : null}
                   </div>
+
+                  <FullScreenOverlay
+                    open={fullScreenChartName === c.chartName}
+                    onClose={() => setFullScreenChartName(null)}
+                    title={c.chartName}
+                  >
+                    <div className="preview__rowMeta">
+                      Markers RS: {c.markers.RS.join(', ') || '—'} | WS: {c.markers.WS.join(', ') || '—'}
+                    </div>
+                    <NodeLinkView nodes={c.nodes} links={c.links} allowPan />
+                  </FullScreenOverlay>
+
+                  <FullScreenOverlay
+                    open={fullScreenTorsoChartName === c.chartName}
+                    onClose={() => setFullScreenTorsoChartName(null)}
+                    title={`${c.chartName} – Torso`}
+                  >
+                    <TorsoOverlayView torso={torsoByChart[c.chartName] ?? null} nodes={c.nodes} />
+                  </FullScreenOverlay>
                 </div>
               ))}
             </div>
