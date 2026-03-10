@@ -7,7 +7,7 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
     {
       kind: 'category',
       name: 'Charts',
-      colour: '210',
+      categorystyle: '210',
       contents: [
         {
           kind: 'block',
@@ -18,7 +18,7 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
     {
       kind: 'category',
       name: 'Commands',
-      colour: '120',
+      categorystyle: '120',
       contents: [
         {
           kind: 'block',
@@ -65,7 +65,7 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
     {
       kind: 'category',
       name: 'Patterns',
-      colour: '65',
+      categorystyle: '65',
       contents: [
         {
           kind: 'block',

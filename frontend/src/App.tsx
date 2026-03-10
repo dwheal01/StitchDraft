@@ -65,8 +65,8 @@ function App() {
     <div className="app">
       <header className="header">
         <div className="title">
-          <div className="title__name">Knitting Pattern Builder (MVP)</div>
-          <div className="title__subtitle">Build patterns in blocks, see them as charts.</div>
+          <div className="title__name">StitchDraft</div>
+          <div className="title__subtitle">A Block-Based System for Visualizing Fit in Hand-Knit Garments</div>
         </div>
       </header>
 

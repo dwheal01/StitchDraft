@@ -3,6 +3,7 @@ import * as Blockly from 'blockly/core'
 
 import { compileWorkspaceToIr, type CompileResult } from '../blockly/compileToIr'
 import { registerKnittingBlocks } from '../blockly/registerBlocks'
+import { pastelTheme } from '../blockly/pastelTheme'
 import { toolbox } from '../blockly/toolbox'
 
 type Props = {
@@ -21,10 +22,11 @@ export function BlocklyWorkspace({ onCompiled }: Props) {
   const injectOptions = useMemo<Blockly.BlocklyOptions>(
     () => ({
       toolbox,
+      theme: pastelTheme,
       trashcan: true,
       // Use geras renderer; zelos can trigger a context menu DOM bug (MenuItem createDom / appendChild).
       renderer: 'geras',
-      grid: { spacing: 20, length: 3, colour: '#334155', snap: true },
+      grid: { spacing: 20, length: 3, colour: '#b8c4d4', snap: true },
       zoom: { controls: true, wheel: true, startScale: 0.9, maxScale: 2, minScale: 0.3 },
     }),
     [],

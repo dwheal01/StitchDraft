@@ -237,7 +237,6 @@ fabric.properties
 # Built Visual Studio Code Extensions
 *.vsix
 
-
 ### Gradle
 .gradle
 **/build/
@@ -255,3 +254,6 @@ gradle-app.setting
 # Cache of project
 .gradletasknamecache
 /.idea/
+
+# Lovable nested repo (UI playground)
+/lovable/

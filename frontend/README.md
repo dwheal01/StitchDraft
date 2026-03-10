@@ -2,6 +2,15 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## Theme (pastel dashboard)
+
+Styling uses a soft pastel dashboard theme via CSS custom properties.
+
+- **Tokens and base styles**: `src/index.css` (`:root` variables and global element styles).
+- **Layout and components**: `src/App.css` (app shell, panels, buttons, preview, overlays).
+
+To change colors or roundness, edit the variables in `src/index.css` (e.g. `--primary`, `--radius-lg`, `--shadow-md`).
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
