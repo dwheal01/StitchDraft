@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { chartToDataUrl, getChartExtent } from '../utils/chartSnapshot'
 
 type NodeVm = {
   id: string
@@ -25,6 +26,8 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const pendingSelectionRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null)
   const rafIdRef = useRef<number | null>(null)
+  const panRafIdRef = useRef<number | null>(null)
+  const pendingPanRef = useRef<{ x: number; y: number } | null>(null)
 
   const [dragging, setDragging] = useState(false)
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
@@ -54,6 +57,13 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
     const height = Math.max(150, maxY - minY + padding * 2)
     return { viewBox: `${minX - padding} ${minY - padding} ${width} ${height}` }
   }, [nodes])
+
+  const chartSnapshot = useMemo(() => {
+    if (!allowPan || !nodes.length) return null
+    const dataUrl = chartToDataUrl(nodes)
+    const extent = getChartExtent(nodes)
+    return dataUrl && extent ? { dataUrl, extent } : null
+  }, [allowPan, nodes])
 
   const colorForType = (t: string) => {
     const key = t.toLowerCase()
@@ -154,7 +164,13 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
       if (panDragging && panStart) {
         const dx = pt.x - panStart.x
         const dy = pt.y - panStart.y
-        setPanTranslate({ x: panAtStart.x + dx, y: panAtStart.y + dy })
+        pendingPanRef.current = { x: panAtStart.x + dx, y: panAtStart.y + dy }
+        if (panRafIdRef.current === null) {
+          panRafIdRef.current = requestAnimationFrame(() => {
+            if (pendingPanRef.current) setPanTranslate(pendingPanRef.current)
+            panRafIdRef.current = null
+          })
+        }
         return
       }
       if (!dragging || !dragStart) return
@@ -178,6 +194,10 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
   )
 
   const stopPanDrag = useCallback(() => {
+    if (panRafIdRef.current !== null) {
+      cancelAnimationFrame(panRafIdRef.current)
+      panRafIdRef.current = null
+    }
     setPanDragging(false)
     setPanStart(null)
   }, [])
@@ -262,20 +282,31 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
         style={allowPan ? { cursor: panDragging ? 'grabbing' : 'grab' } : undefined}
       >
         <g transform={`translate(${panTranslate.x} ${panTranslate.y})`}>
-          <g className="nodeLinkNodes">
-            {nodes.map((n) => (
-              <circle
-                key={n.id}
-                cx={n.x}
-                cy={n.y}
-                r={n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec' ? 5 : 3}
-                fill={colorForType(n.type)}
-                stroke={n.type === 'strand' ? 'none' : '#111827'}
-                strokeWidth={0.5}
-                opacity={n.type === 'strand' ? 0.0 : 1}
-              />
-            ))}
-          </g>
+          {allowPan && chartSnapshot ? (
+            <image
+              href={chartSnapshot.dataUrl}
+              x={chartSnapshot.extent.minX}
+              y={chartSnapshot.extent.minY}
+              width={chartSnapshot.extent.width}
+              height={chartSnapshot.extent.height}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          ) : (
+            <g className="nodeLinkNodes">
+              {nodes.map((n) => (
+                <circle
+                  key={n.id}
+                  cx={n.x}
+                  cy={n.y}
+                  r={n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec' ? 5 : 3}
+                  fill={colorForType(n.type)}
+                  stroke={n.type === 'strand' ? 'none' : '#111827'}
+                  strokeWidth={0.5}
+                  opacity={n.type === 'strand' ? 0.0 : 1}
+                />
+              ))}
+            </g>
+          )}
           {selection ? (
             <g className="nodeLinkMeasurementBox">
               <rect

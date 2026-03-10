@@ -98,3 +98,49 @@ export function chartToDataUrl(nodes: ChartNode[]): string | null {
   const encoded = encodeURIComponent(svg)
   return `data:image/svg+xml;charset=utf-8,${encoded}`
 }
+
+const DEFAULT_PNG_MAX_SIZE = 2048
+
+/**
+ * Rasterizes the chart SVG to a PNG data URL for use as a bitmap overlay.
+ * Caps canvas size at maxSize (default 2048) on the longer side so the bitmap stays manageable.
+ */
+export function chartToPngDataUrl(
+  nodes: ChartNode[],
+  maxSize: number = DEFAULT_PNG_MAX_SIZE,
+): Promise<string | null> {
+  if (nodes.length === 0) return Promise.resolve(null)
+  const svgDataUrl = chartToDataUrl(nodes)
+  if (!svgDataUrl) return Promise.resolve(null)
+  const extent = getChartExtent(nodes)
+  if (!extent) return Promise.resolve(null)
+
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      try {
+        let w = extent!.width
+        let h = extent!.height
+        if (w > maxSize || h > maxSize) {
+          const scale = maxSize / Math.max(w, h)
+          w = Math.round(w * scale)
+          h = Math.round(h * scale)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve(null)
+          return
+        }
+        ctx.drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL('image/png'))
+      } catch {
+        resolve(null)
+      }
+    }
+    img.onerror = () => resolve(null)
+    img.src = svgDataUrl
+  })
+}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TorsoSvgResponse } from '../api/client'
-import { chartToDataUrl, getChartExtent } from '../utils/chartSnapshot'
+import { chartToDataUrl, chartToPngDataUrl, getChartExtent } from '../utils/chartSnapshot'
 
 type NodeVm = {
   id: string
@@ -82,11 +82,38 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
       }))
   }, [engineUnitsToInches, nodes])
 
-  const chartSnapshot = useMemo(() => {
+  const chartSnapshotSvg = useMemo(() => {
     const dataUrl = chartToDataUrl(nodes)
     const extent = getChartExtent(nodes)
     return dataUrl && extent ? { dataUrl, extent } : null
   }, [nodes])
+
+  const [chartPngSnapshot, setChartPngSnapshot] = useState<{
+    dataUrl: string
+    extent: { minX: number; minY: number; width: number; height: number }
+  } | null>(null)
+
+  useEffect(() => {
+    if (!nodes.length) {
+      setChartPngSnapshot(null)
+      return
+    }
+    const extent = getChartExtent(nodes)
+    if (!extent) {
+      setChartPngSnapshot(null)
+      return
+    }
+    let cancelled = false
+    chartToPngDataUrl(nodes).then((dataUrl) => {
+      if (cancelled || !dataUrl) return
+      setChartPngSnapshot({ dataUrl, extent })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [nodes])
+
+  const chartSnapshot = chartPngSnapshot ?? chartSnapshotSvg
 
   const clientToSvgPoint = useCallback((evt: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
     const svg = svgRef.current
@@ -170,7 +197,10 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
           className="torsoOverlayChart"
           transform={`translate(${offset.dx} ${offset.dy})`}
           onMouseDown={onMouseDown}
-          style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+          style={{
+            cursor: dragging ? 'grabbing' : 'grab',
+            willChange: dragging ? 'transform' : 'auto',
+          }}
         >
           {chartSnapshot ? (
             <image
