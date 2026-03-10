@@ -202,7 +202,6 @@ def _build_svg(
      width="{width}{units}"
      height="{height}{units}"
      viewBox="{view_box}">
-  <rect width="100%" height="100%" fill="white"/>
   <!-- Left torso -->
   <path d="{torso_half_path}" fill="black" transform="scale(-1,1)" />
   <!-- Right torso -->
