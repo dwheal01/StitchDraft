@@ -22,35 +22,28 @@ export const pastelTheme = Blockly.Theme.defineTheme('pastel', {
     markerColour: '#5fb7ff',
   },
   blockStyles: {
-    /* Charts – soft blue */
-    '210': {
+    /* Chart setup – soft blue */
+    chart: {
       colourPrimary: '#7eb8f0',
       colourSecondary: '#a8d4f8',
       colourTertiary: '#5a9ad4',
     },
-    /* Commands (cast on, add row, repeat, etc.) – soft green */
-    '120': {
-      colourPrimary: '#70d090',
-      colourSecondary: '#a8e6b8',
-      colourTertiary: '#4aab6a',
-    },
-    /* Pattern row – soft purple */
-    '65': {
+    /* Stitch rows – soft purple */
+    patterns: {
       colourPrimary: '#b8a8e8',
       colourSecondary: '#d4c8f0',
       colourTertiary: '#8a7ac8',
     },
-    /* Place marker, hold, join – soft purple */
-    '40': {
-      colourPrimary: '#a890e0',
-      colourSecondary: '#c8b8f0',
-      colourTertiary: '#7a6ab8',
+    /* Structure & markers – soft green */
+    structure: {
+      colourPrimary: '#70d090',
+      colourSecondary: '#a8e6b8',
+      colourTertiary: '#4aab6a',
     },
   },
   categoryStyles: {
-    '210': { colour: '#7eb8f0' },
-    '120': { colour: '#70d090' },
-    '65': { colour: '#b8a8e8' },
-    '40': { colour: '#a890e0' },
+    chart: { colour: '#7eb8f0' },
+    patterns: { colour: '#b8a8e8' },
+    structure: { colour: '#70d090' },
   },
 })

@@ -6,23 +6,27 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
   contents: [
     {
       kind: 'category',
-      name: 'Charts',
-      categorystyle: '210',
+      name: 'Chart setup',
+      categorystyle: 'chart',
       contents: [
         {
           kind: 'block',
           type: BlockTypes.CHART,
         },
+        {
+          kind: 'block',
+          type: BlockTypes.CAST_ON_START,
+        },
       ],
     },
     {
       kind: 'category',
-      name: 'Commands',
-      categorystyle: '120',
+      name: 'Stitch rows',
+      categorystyle: 'patterns',
       contents: [
         {
           kind: 'block',
-          type: BlockTypes.CAST_ON_START,
+          type: BlockTypes.PATTERN_ROW,
         },
         {
           kind: 'block',
@@ -44,6 +48,13 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
           kind: 'block',
           type: BlockTypes.REPEAT_ROUNDS,
         },
+      ],
+    },
+    {
+      kind: 'category',
+      name: 'Structure & markers',
+      categorystyle: 'structure',
+      contents: [
         {
           kind: 'block',
           type: BlockTypes.PLACE_MARKER,
@@ -59,17 +70,6 @@ export const toolbox: Blockly.utils.toolbox.ToolboxDefinition = {
         {
           kind: 'block',
           type: BlockTypes.JOIN_CHARTS,
-        },
-      ],
-    },
-    {
-      kind: 'category',
-      name: 'Patterns',
-      categorystyle: '65',
-      contents: [
-        {
-          kind: 'block',
-          type: BlockTypes.PATTERN_ROW,
         },
       ],
     },
