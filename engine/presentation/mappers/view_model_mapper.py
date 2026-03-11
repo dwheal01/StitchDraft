@@ -11,7 +11,11 @@ class ViewModelMapper:
     """Maps domain/data models to presentation view models."""
     
     def to_view_model(self, chart_data: ChartData) -> ChartViewModel:
-        """Convert ChartData to ChartViewModel."""
+        """Convert ChartData to ChartViewModel.
+
+        RS and WS charts use the same x layout so that the visual output matches
+        (e.g. WS-start "incorrect" chart looks like the RS-start "correct" chart).
+        """
         node_view_models = [self.to_node_view_model(node) for node in chart_data.nodes]
         link_view_models = [self.to_link_view_model(link) for link in chart_data.links]
         

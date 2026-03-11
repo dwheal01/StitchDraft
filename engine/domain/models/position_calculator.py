@@ -60,6 +60,9 @@ class PositionCalculator:
         unconsumed_stitches = previous_stitches[prev_i:]
       else:
         unconsumed_stitches = previous_stitches[:len(previous_stitches)-prev_i]
+      # For both RS and WS, return evenly spaced, centered anchors. WS-specific
+      # drawing conventions are handled in the presentation layer so the engine
+      # geometry remains symmetric and knitting-focused.
       return self._center_anchors(anchors, row), unconsumed_stitches
 
     def _add_increase_decrease_links(self, stitch: str, prev_i: int, current_i: int, previous_stitches: List[Node], link_manager, node_counter: int) -> None:

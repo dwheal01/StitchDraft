@@ -23,13 +23,25 @@ class ChartGenerator:
         # Import at runtime to avoid circular import
         from engine.chart_section import ChartSection
         nodes = []
-        anchors, unconsumed_stitches = chart.position_calculator.calculate_anchors(
-            row, 
-            context.side, 
-            context.previous_stitches, 
-            chart.link_manager, 
-            chart.node_manager.get_node_counter()
-        )
+
+        # For WS rows the expanded row was already reversed by reverse_row_if_needed
+        # (e.g. k1, inc, repeat(k1) -> k*9, inc, k). Treat it like RS for position calculation.
+        if context.side == "WS":
+            anchors, unconsumed_stitches = chart.position_calculator.calculate_anchors(
+                row,
+                "RS",
+                context.previous_stitches,
+                chart.link_manager,
+                chart.node_manager.get_node_counter()
+            )
+        else:
+            anchors, unconsumed_stitches = chart.position_calculator.calculate_anchors(
+                row, 
+                context.side, 
+                context.previous_stitches, 
+                chart.link_manager, 
+                chart.node_manager.get_node_counter()
+            )
         
         for i, stitch in enumerate(row):
             # Flip stitch type for wrong side
@@ -68,9 +80,19 @@ class ChartGenerator:
         previous_stitches: List[Node]
     ) -> List[float]:
         """Calculate positions for stitches in a row."""
+        side = chart.row_manager.get_last_row_side()
+        if side == "WS":
+            anchors, _ = chart.position_calculator.calculate_anchors(
+                row,
+                "RS",
+                previous_stitches,
+                chart.link_manager,
+                chart.node_manager.get_node_counter()
+            )
+            return anchors
         anchors, _ = chart.position_calculator.calculate_anchors(
             row,
-            chart.row_manager.get_last_row_side(),
+            side,
             previous_stitches,
             chart.link_manager,
             chart.node_manager.get_node_counter()
@@ -91,14 +113,23 @@ class ChartGenerator:
         # Get previous stitches
         previous_stitches = chart.node_manager.get_last_row_stitches()
         
-        # Calculate anchors
-        anchors, unconsumed_stitches = chart.position_calculator.calculate_anchors(
-            row, 
-            side, 
-            previous_stitches, 
-            chart.link_manager, 
-            chart.node_manager.get_node_counter()
-        )
+        # Calculate anchors. For WS the row was already reversed by reverse_row_if_needed.
+        if side == "WS":
+            anchors, unconsumed_stitches = chart.position_calculator.calculate_anchors(
+                row, 
+                "RS", 
+                previous_stitches, 
+                chart.link_manager, 
+                chart.node_manager.get_node_counter()
+            )
+        else:
+            anchors, unconsumed_stitches = chart.position_calculator.calculate_anchors(
+                row, 
+                side, 
+                previous_stitches, 
+                chart.link_manager, 
+                chart.node_manager.get_node_counter()
+            )
         
         # Create context
         context = GenerationContext(
