@@ -51,7 +51,7 @@ class PositionCalculator:
                # Add vertical link from previous row to current row
                prev_i += 1
          else:
-                anchors.append(self._calculate_increase_decrease_anchor(i, prev_i, previous_stitches, side))
+                anchors.append(self._calculate_increase_decrease_anchor(i, prev_i, previous_stitches, side, stitch))
                 self._add_increase_decrease_links(stitch, len(previous_stitches)-1-prev_i, i, previous_stitches, link_manager, node_counter)
                 if stitch == "dec":
                     prev_i += 2
@@ -81,7 +81,7 @@ class PositionCalculator:
         """Check if stitch is a regular knit or purl."""
         return stitch in ["k", "p", "bo"]
     
-    def _calculate_increase_decrease_anchor(self, i: int, prev_i: int, previous_stitches: List[Node], side: str) -> float:
+    def _calculate_increase_decrease_anchor(self, i: int, prev_i: int, previous_stitches: List[Node], side: str, stitch: str = "inc") -> float:
         """Calculate anchor position for increase/decrease stitches (and co: cast-on beyond end of row)."""
         # Derive a reasonable spacing from the previous row if possible
         if len(previous_stitches) >= 2:
@@ -91,40 +91,38 @@ class PositionCalculator:
 
         # Edge cases: increases/decreases at the very beginning or beyond the end
         if i == 0:
-            # At the beginning of the logical row. Respect knitting direction:
-            # RS: extend to the left of the leftmost previous stitch
-            # WS: extend to the right of the rightmost previous stitch
+            # At the beginning of the logical row.
+            if stitch == "dec":
+                # Dec merges the first two previous stitches (RS) or rightmost two (WS).
+                if side == "RS":
+                    return (previous_stitches[0].fx + previous_stitches[1].fx) / 2
+                return (previous_stitches[-2].fx + previous_stitches[-1].fx) / 2
+            # Inc: extend from the working edge
             if side == "RS":
                 return previous_stitches[0].fx - spacing
-            else:
-                return previous_stitches[-1].fx + spacing
+            return previous_stitches[-1].fx + spacing
         elif prev_i >= len(previous_stitches):
-            # Stitches beyond the *consumed* previous stitches (e.g. true cast-on at end):
-            # extend from the working edge using the same spacing as the previous row to
-            # avoid visual shift. This uses prev_i instead of i so that increases that
-            # still have unused previous stitches (like a mirrored inc near the far edge)
-            # are NOT misclassified as cast-on.
+            # Stitches beyond the *consumed* previous stitches (e.g. true cast-on at end).
+            # (Dec would not normally hit this; it consumes two stitches.)
             steps_from_edge = prev_i - len(previous_stitches) + 1
             if side == "RS":
-                # RS: extend to the right of the rightmost previous stitch
                 return previous_stitches[-1].fx + spacing * steps_from_edge
-            else:
-                # WS: extend to the left of the leftmost previous stitch
-                return previous_stitches[0].fx - spacing * steps_from_edge
+            return previous_stitches[0].fx - spacing * steps_from_edge
         else:
-            # Interior increases/decreases: place exactly between the last-used and next-unused
-            # stitches, based on the knitting direction.
+            # Interior: inc = insert between last-used and next-unused; dec = merge next two.
             if side == "RS":
-                # On RS, prev_i counts consumed stitches from the left.
-                return (previous_stitches[prev_i-1].fx + previous_stitches[prev_i].fx) / 2
-            else:
-                # On WS, prev_i counts consumed stitches from the right.
-                # Consumed indices from right are: N-1, N-2, ..., N-prev_i.
-                # Last used from the right: N - prev_i
-                # Next unused from the right: N - prev_i - 1
-                last_used_idx = len(previous_stitches) - prev_i
-                next_unused_idx = len(previous_stitches) - prev_i - 1
-                return (previous_stitches[last_used_idx].fx + previous_stitches[next_unused_idx].fx) / 2
+                if stitch == "dec":
+                    return (previous_stitches[prev_i].fx + previous_stitches[prev_i + 1].fx) / 2
+                return (previous_stitches[prev_i - 1].fx + previous_stitches[prev_i].fx) / 2
+            # WS
+            if stitch == "dec":
+                # Next two to consume from the right: indices N-prev_i-1 and N-prev_i-2
+                a = len(previous_stitches) - prev_i - 1
+                b = len(previous_stitches) - prev_i - 2
+                return (previous_stitches[a].fx + previous_stitches[b].fx) / 2
+            last_used_idx = len(previous_stitches) - prev_i
+            next_unused_idx = len(previous_stitches) - prev_i - 1
+            return (previous_stitches[last_used_idx].fx + previous_stitches[next_unused_idx].fx) / 2
     
     def _center_anchors(self, anchors: List[float], row: List[str]) -> List[float]:
         """Center the anchors around zero."""
