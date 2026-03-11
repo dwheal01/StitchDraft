@@ -52,7 +52,12 @@ class PositionCalculator:
                prev_i += 1
          else:
                 anchors.append(self._calculate_increase_decrease_anchor(i, prev_i, previous_stitches, side, stitch))
-                self._add_increase_decrease_links(stitch, len(previous_stitches)-1-prev_i, i, previous_stitches, link_manager, node_counter)
+                # Inc needs a stitch before it (link from strand after that stitch); dec consumes two, no stitch before.
+                if side == "RS":
+                    link_idx = (prev_i - 1) if stitch == "inc" else prev_i
+                else:
+                    link_idx = len(previous_stitches) - 1 - prev_i
+                self._add_increase_decrease_links(stitch, link_idx, i, previous_stitches, link_manager, node_counter)
                 if stitch == "dec":
                     prev_i += 2
                     
@@ -65,17 +70,18 @@ class PositionCalculator:
       # geometry remains symmetric and knitting-focused.
       return self._center_anchors(anchors, row), unconsumed_stitches
 
-    def _add_increase_decrease_links(self, stitch: str, prev_i: int, current_i: int, previous_stitches: List[Node], link_manager, node_counter: int) -> None:
-      """Add links for increase/decrease stitches."""
+    def _add_increase_decrease_links(self, stitch: str, link_idx: int, current_i: int, previous_stitches: List[Node], link_manager, node_counter: int) -> None:
+      """Add links for increase/decrease stitches. link_idx: for inc, stitch whose strand we link from; for dec, first of the two stitches."""
       if stitch == "inc":
-         # Link from the strand that follows the reference stitch (if it exists)
-         if prev_i < len(previous_stitches) - 1:
-             prev_strand_id = f"{previous_stitches[prev_i].id}s"
+         # Inc needs a stitch before it: link from the strand after that stitch (invalid at row start).
+         if link_idx >= 0 and link_idx < len(previous_stitches) - 1:
+             prev_strand_id = f"{previous_stitches[link_idx].id}s"
              link_manager.add_vertical_link(prev_strand_id, f"{node_counter + current_i}")
       elif stitch == "dec":
-         # Link from two previous stitches to decrease
-         link_manager.add_vertical_link(previous_stitches[prev_i].id, f"{node_counter + current_i}")
-         link_manager.add_vertical_link(previous_stitches[prev_i+1].id, f"{node_counter + current_i}")
+         # Dec consumes two stitches; no stitch before needed.
+         if link_idx >= 0 and link_idx + 1 < len(previous_stitches):
+             link_manager.add_vertical_link(previous_stitches[link_idx].id, f"{node_counter + current_i}")
+             link_manager.add_vertical_link(previous_stitches[link_idx + 1].id, f"{node_counter + current_i}")
          
     def _is_regular_stitch(self, stitch: str) -> bool:
         """Check if stitch is a regular knit or purl."""

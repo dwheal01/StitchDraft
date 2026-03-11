@@ -39,6 +39,11 @@ class AddRowOperation(IChartOperation):
             )
             chart._last_warnings = list(getattr(expanded, "warnings", []) or [])
             new_row = expanded.stitches
+            # In knitting, an increase needs a stitch before it; a decrease does not.
+            if new_row and new_row[0] == "inc":
+                raise ValueError(
+                    "An increase cannot be the first stitch of a row; it requires a stitch before it."
+                )
             consumed = expanded.consumed
             produced = expanded.produced
             markers = expanded.markers
