@@ -441,3 +441,113 @@
   min-height: 320px;
   height: auto;
 }
+
+/* Docs side panel */
+.docsButton {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.docsButton:hover {
+  border-color: var(--primary);
+  background: var(--accent);
+}
+
+.docsPanel {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.docsPanel__backdrop {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.docsPanel__content {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.docsPanel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.docsPanel__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.docsPanel__subtitle {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.docsPanel__close {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.docsPanel__close:hover {
+  border-color: var(--primary);
+  background: var(--accent);
+}
+
+.docsPanel__body {
+  padding: 14px 18px 18px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.docsPanel__section {
+  margin-bottom: 16px;
+}
+
+.docsPanel__sectionTitle {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.docsPanel__subheading {
+  margin: 10px 0 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.docsPanel__body ul {
+  margin: 0 0 6px 18px;
+  padding: 0;
+}
+
+.docsPanel__body li {
+  margin-bottom: 4px;
+}

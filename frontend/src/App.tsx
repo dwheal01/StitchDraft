@@ -10,6 +10,7 @@ import { TorsoControls } from './components/TorsoControls'
 import { TorsoOverlayView } from './components/TorsoOverlayView'
 import { FullScreenOverlay } from './components/FullScreenOverlay'
 import { chartToSvgString } from './utils/chartSnapshot'
+import { DocsPanel } from './components/DocsPanel'
 
 function downloadChartAsSvg(chartName: string, nodes: PreviewResponse['charts'][0]['nodes']) {
   if (nodes.length === 0) return
@@ -34,6 +35,7 @@ function App() {
   const [collapsedByChart, setCollapsedByChart] = useState<Record<string, boolean>>({})
   const [fullScreenChartName, setFullScreenChartName] = useState<string | null>(null)
   const [fullScreenTorsoChartName, setFullScreenTorsoChartName] = useState<string | null>(null)
+  const [docsOpen, setDocsOpen] = useState(false)
 
   useEffect(() => {
     if (!compiled) return
@@ -67,6 +69,11 @@ function App() {
         <div className="title">
           <div className="title__name">StitchDraft</div>
           <div className="title__subtitle">A Block-Based System for Visualizing Fit in Hand-Knit Garments</div>
+        </div>
+        <div className="header__actions">
+          <button type="button" className="docsButton" onClick={() => setDocsOpen(true)}>
+            Docs
+          </button>
         </div>
       </header>
 
@@ -253,6 +260,7 @@ function App() {
           )}
         </section>
       </main>
+      <DocsPanel open={docsOpen} onClose={() => setDocsOpen(false)} />
     </div>
   )
 }
