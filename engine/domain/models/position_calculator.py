@@ -80,25 +80,57 @@ class PositionCalculator:
     
     def _calculate_increase_decrease_anchor(self, i: int, prev_i: int, previous_stitches: List[Node], side: str) -> float:
         """Calculate anchor position for increase/decrease stitches (and co: cast-on beyond end of row)."""
-        if i == 0:
-            return previous_stitches[0].fx - 50
-        elif i >= len(previous_stitches):
-            # Stitches beyond previous row (e.g. cast-on at end): use same spacing as row to avoid shift
-            if len(previous_stitches) >= 2:
-                spacing = (previous_stitches[-1].fx - previous_stitches[0].fx) / (len(previous_stitches) - 1)
-            else:
-                spacing = self.DEFAULT_SPACING if self.DEFAULT_SPACING > 0 else 50
-            return previous_stitches[-1].fx + spacing * (i - len(previous_stitches) + 1)
+        # Derive a reasonable spacing from the previous row if possible
+        if len(previous_stitches) >= 2:
+            spacing = (previous_stitches[-1].fx - previous_stitches[0].fx) / (len(previous_stitches) - 1)
         else:
+            spacing = self.DEFAULT_SPACING if self.DEFAULT_SPACING > 0 else 50
+
+        # Edge cases: increases/decreases at the very beginning or beyond the end
+        if i == 0:
+            # At the beginning of the logical row. Respect knitting direction:
+            # RS: extend to the left of the leftmost previous stitch
+            # WS: extend to the right of the rightmost previous stitch
             if side == "RS":
+                return previous_stitches[0].fx - spacing
+            else:
+                return previous_stitches[-1].fx + spacing
+        elif prev_i >= len(previous_stitches):
+            # Stitches beyond the *consumed* previous stitches (e.g. true cast-on at end):
+            # extend from the working edge using the same spacing as the previous row to
+            # avoid visual shift. This uses prev_i instead of i so that increases that
+            # still have unused previous stitches (like a mirrored inc near the far edge)
+            # are NOT misclassified as cast-on.
+            steps_from_edge = prev_i - len(previous_stitches) + 1
+            if side == "RS":
+                # RS: extend to the right of the rightmost previous stitch
+                return previous_stitches[-1].fx + spacing * steps_from_edge
+            else:
+                # WS: extend to the left of the leftmost previous stitch
+                return previous_stitches[0].fx - spacing * steps_from_edge
+        else:
+            # Interior increases/decreases: place exactly between the last-used and next-unused
+            # stitches, based on the knitting direction.
+            if side == "RS":
+                # On RS, prev_i counts consumed stitches from the left.
                 return (previous_stitches[prev_i-1].fx + previous_stitches[prev_i].fx) / 2
             else:
-                return (previous_stitches[len(previous_stitches)-prev_i-1].fx + previous_stitches[len(previous_stitches)-prev_i].fx) / 2
+                # On WS, prev_i counts consumed stitches from the right.
+                # Consumed indices from right are: N-1, N-2, ..., N-prev_i.
+                # Last used from the right: N - prev_i
+                # Next unused from the right: N - prev_i - 1
+                last_used_idx = len(previous_stitches) - prev_i
+                next_unused_idx = len(previous_stitches) - prev_i - 1
+                return (previous_stitches[last_used_idx].fx + previous_stitches[next_unused_idx].fx) / 2
     
     def _center_anchors(self, anchors: List[float], row: List[str]) -> List[float]:
         """Center the anchors around zero."""
         if not anchors:
             return anchors
         
+        # Maintain the previous behavior of evenly spacing stitches for the row
+        # while centering around the average anchor position. This keeps the
+        # chart visually tidy and consistent in width, even though it slightly
+        # abstracts away from the exact physical spacing.
         center_of_anchors = sum(anchors) / len(anchors)
         return [center_of_anchors + x for x in self.centered_array(len(row))]

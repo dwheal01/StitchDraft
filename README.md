@@ -46,10 +46,7 @@ project-20252601-diana*final_project/
 │ │ ├── observers/ # Observer pattern implementations
 │ │ └── services/ # Presentation services
 │ └── test*\*.py # Test files (see Running Tests section)
-├── presentation/ # Frontend visualization
-│ ├── visualizaion.html # Interactive D3.js visualizer (note: filename has typo)
-│ ├── test_view_models.html # Test files for view models
-│ └── test_view_models_e2e.html # End-to-end test files
+├── presentation/ # Legacy HTML visualizations (superseded by React frontend)
 └── docs/ # Documentation
 ├── refactored_design.uml # Architecture diagram
 └── design/ # Additional design documentation
@@ -147,43 +144,15 @@ The application exports JSON data in two formats:
    - Structure: `{"charts": [{"name": "...", "nodes": [...], "links": [...]}, ...]}`
 
 2. **Individual chart files**: `engine/{chart_name}.json`
-   - One file per chart section (e.g., `raglan.json`, `raglan_back.json`)
+   - One file per chart section when saved by the service
    - Structure: `{"name": "...", "nodes": [...], "links": [...]}`
 
-Both formats are written to the `engine/` directory when you run `main.py`.
+Sample chart JSONs used in this project are stored under `engine/examples/` (for example, `raglan.json`, `raglan_back.json`, `sleeve.json`, `lobster_back.json`, `join_demo.json`). Both formats are written to the `engine/` directory when you run `main.py`.
 
-## Visualizer HTML Location
+## Frontend visualizer
 
-The interactive visualizer is located at:
-
-- **`presentation/visualizaion.html`**
-
-To use the visualizer:
-
-1. Generate the JSON files by running:
-   ```bash
-   python engine/main.py
-   ```
-2. **Option A – Open file directly**  
-   Open `presentation/visualizaion.html` in a web browser (for example, by double-clicking it in your file manager).
-3. **Option B – Run a local HTTP server**  
-   From the project root, start a simple HTTP server:
-   ```bash
-   python -m http.server 8000
-   ```
-   Then open `http://localhost:8000/presentation/visualizaion.html` in your browser.
-4. The visualizer will automatically load `engine/charts.json`
-
-The visualizer provides:
-
-- Interactive tabbed interface for multiple charts
-- SVG rendering of knitting patterns with color-coded stitch types:
-  - Blue (`k`) - Knit stitches
-  - Purple (`p`) - Purl stitches
-  - Green (`inc`) - Increases
-  - Red (`dec`) - Decreases
-- Download functionality for individual chart SVGs
-- Presentation layer architecture with ViewModels, Mappers, and Renderers
+The original D3-based HTML visualizer in `presentation/` has been replaced by the React/Vite app in `frontend/`.
+Use the React app as the primary way to explore and debug charts.
 
 ## Key Components
 

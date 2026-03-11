@@ -1,3 +1,0 @@
-[console_scripts]
-knit-chart = engine.main:main
-knitting-pattern-engine = engine.main:main
