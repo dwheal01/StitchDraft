@@ -124,7 +124,7 @@ export function registerKnittingBlocks(): void {
       previousStatement: 'COMMAND',
       nextStatement: 'COMMAND',
       style: 'patterns',
-      tooltip: 'Add a flat row using the engine pattern DSL.',
+      tooltip: 'e.g. k2, inc, repeat(k1). Allowed: k, p, inc, dec, bo, co, pm, rm, sm, work est, cont as est, repeat(...).',
       helpUrl: '',
     },
     {
@@ -140,7 +140,7 @@ export function registerKnittingBlocks(): void {
       previousStatement: 'PATTERN',
       nextStatement: 'PATTERN',
       style: 'patterns',
-      tooltip: 'A row pattern (used inside repeat blocks).',
+      tooltip: 'e.g. k2, inc, repeat(k1). Allowed: k, p, inc, dec, bo, co, pm, rm, sm, work est, cont as est, repeat(...).',
       helpUrl: '',
     },
     {
@@ -180,7 +180,7 @@ export function registerKnittingBlocks(): void {
       previousStatement: 'COMMAND',
       nextStatement: 'COMMAND',
       style: 'patterns',
-      tooltip: 'Add a round using the engine pattern DSL.',
+      tooltip: 'e.g. k2, inc, repeat(k1). Allowed: k, p, inc, dec, bo, co, pm, rm, sm, work est, cont as est, repeat(...).',
       helpUrl: '',
     },
     {
