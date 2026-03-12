@@ -152,6 +152,20 @@
   padding-bottom: 10px;
 }
 
+.preview__chart--loading .preview__chartHeader {
+  margin-bottom: 0;
+}
+
+.preview__chartLoadingBody {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 20px 0 10px;
+}
+
+.preview__chartStatus {
+  font-weight: 600;
+}
+
 .preview__chartHeader {
   display: flex;
   align-items: baseline;

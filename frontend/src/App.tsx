@@ -111,7 +111,19 @@ function App() {
             </div>
           ) : null}
 
-          {preview ? (
+          {isPreviewLoading && compiled && compileErrors.length === 0 ? (
+            <div className="preview">
+              {compiled.charts.map((ch) => (
+                <div key={ch.name} className="preview__chart preview__chart--loading">
+                  <div className="preview__chartHeader">
+                    <div className="preview__chartName">{ch.name}</div>
+                    <div className="preview__chartMeta preview__chartStatus">Loading…</div>
+                  </div>
+                  <div className="preview__chartLoadingBody">Loading chart data…</div>
+                </div>
+              ))}
+            </div>
+          ) : preview ? (
             <div className="preview">
               {preview.charts.map((c) => (
                 <div
@@ -121,6 +133,8 @@ function App() {
                   <div className="preview__chartHeader">
                     <div className="preview__chartName">{c.chartName}</div>
                     <div className="preview__chartMeta">
+                      <span className="preview__chartStatus">Ready</span>
+                      {' · '}
                       {c.rows.length} row(s), {c.currentStitchCount} st(s)
                     </div>
                     {collapsedByChart[c.chartName] && (c.errors.length > 0 || c.warnings.length > 0) ? (
@@ -255,9 +269,11 @@ function App() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : null}
+
+          {!isPreviewLoading && !preview && !previewError ? (
             <div className="preview preview--empty">Add a chart + commands to see a preview.</div>
-          )}
+          ) : null}
         </section>
       </main>
       <DocsPanel open={docsOpen} onClose={() => setDocsOpen(false)} />
