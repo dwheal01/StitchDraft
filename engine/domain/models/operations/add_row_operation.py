@@ -27,6 +27,19 @@ class AddRowOperation(IChartOperation):
             produced = len(new_row)
         else:
             side = "WS" if chart.row_manager.is_wrong_side(is_round) else "RS"
+            last_row_side = chart.row_manager.get_last_row_side() if chart.row_manager.get_row_count() > 0 else side
+            # Validate pattern syntax before expansion so invalid tokens produce clear errors
+            from engine.domain.models.validators.pattern_validator import PatternValidator
+            pattern_context = PatternContext(
+                available_stitches=chart.get_current_num_of_stitches(),
+                side=side,
+                markers=chart.marker_manager.get_markers(last_row_side),
+                last_row_side=last_row_side,
+                is_round=is_round,
+            )
+            validation_result = PatternValidator().validate_pattern(pattern, pattern_context)
+            if not validation_result.is_valid:
+                raise ValueError("; ".join(validation_result.errors))
             last_row = None
             if chart.row_manager.get_row_count() > 0:
                 last_row = chart.row_manager.get_row(chart.row_manager.get_row_count() - 1)
@@ -56,8 +69,7 @@ class AddRowOperation(IChartOperation):
         # Pattern syntax is validated by the pattern parser during expansion
         if chart.validation_chain is not None:
             from engine.data.models.validation_request import ValidationRequest
-            from engine.data.models.pattern_context import PatternContext
-            
+
             last_row_side = chart.row_manager.get_last_row_side()
             context = PatternContext(
                 available_stitches=chart.get_current_num_of_stitches(),

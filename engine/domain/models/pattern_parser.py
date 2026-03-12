@@ -291,10 +291,10 @@ class PatternParser:
     
     @staticmethod
     def parse_token(token: str) -> Tuple[str, int]:
-        """Parse token like 'k2' into ('k', 2)."""
+        """Parse token like 'k2' or 'K2' into ('k', 2). Operation name is lowercased."""
         stitch = ''.join([c for c in token if not c.isdigit()])
         digits = ''.join([c for c in token if c.isdigit()])
         count = int(digits) if digits else 1
-        if stitch in ("inc", "dec") and count == 0:
+        if stitch.lower() in ("inc", "dec") and count == 0:
            count = 1
-        return stitch, count
+        return stitch.lower(), count
