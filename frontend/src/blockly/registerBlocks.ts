@@ -35,7 +35,7 @@ export function registerKnittingBlocks(): void {
   Blockly.defineBlocksWithJsonArray([
     {
       type: CHART_BLOCK_TYPE,
-      message0: 'Chart %1 start side %2 sts %3 rows %4 %5 commands %6',
+      message0: 'Chart %1 start side %2 Gaugests %3 rows %4 %5 commands %6',
       args0: [
         {
           type: 'field_input',
