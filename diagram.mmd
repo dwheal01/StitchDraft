@@ -1,0 +1,10 @@
+flowchart TD
+  BlockInterface["Block Interface (Blockly UI)"] -->|"compile Workspace To Ir"| IR["CompiledIR (JSON commands + pattern strings)"]
+  IR -->|"POST /preview"| Backend["BackendAPI (FastAPI)"]
+  Backend -->|"execute_chart_program"| Engine["EngineLibrary (ChartSection + structural model)"]
+  Engine --> ChartModel["GarmentConstructionModel (expand stitch sequences, manage markers → rows + nodes + links)"]
+  ChartModel --> Layout["StitchCoordinateLayout (stitch coordinates → rendered geometry)"]
+  Layout --> Schematic["GarmentSchematic (node/link preview)"]
+  Backend -->|"POST /torso/svg"| Torso["TorsoSVG (inches + viewBox)"]
+  Schematic --> Fit["BodyFitVisualization (overlay + alignment)"]
+  Torso --> Fit

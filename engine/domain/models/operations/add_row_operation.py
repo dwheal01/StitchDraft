@@ -43,6 +43,12 @@ class AddRowOperation(IChartOperation):
             last_row = None
             if chart.row_manager.get_row_count() > 0:
                 last_row = chart.row_manager.get_row(chart.row_manager.get_row_count() - 1)
+                # Rows are stored in needle order. For work-est semantics we need the row
+                # in the direction it was worked:
+                # - If previous row was WS and we are on RS now, reverse it.
+                # - If previous row was RS and we are on WS now, also reverse it.
+                if side != last_row_side:
+                    last_row = last_row[::-1]
             expanded = chart.pattern_parser.expand_pattern(
                 pattern,
                 chart.node_manager.get_last_row_produced(),

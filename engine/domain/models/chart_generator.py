@@ -44,7 +44,8 @@ class ChartGenerator:
             )
         
         for i, stitch in enumerate(row):
-            # Flip stitch type for wrong side
+            # Flip stitch type for wrong side so the chart shows RS appearance:
+            # on the WS, a worked knit shows as a purl on the RS and vice versa.
             if context.side == "WS":
                 if stitch == "k":
                     stitch = "p"
@@ -144,7 +145,6 @@ class ChartGenerator:
         new_nodes = []
         strand_nodes = []  # Track strand nodes to link later
         for i, stitch in enumerate(row):
-            # Flip stitch type for wrong side
             actual_stitch = stitch
             if side == "WS":
                 if stitch == "k":

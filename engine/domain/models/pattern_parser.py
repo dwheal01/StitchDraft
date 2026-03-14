@@ -70,6 +70,7 @@ class PatternParser:
         - Previous row on RS: what we did (k/p) is what shows on RS.
         - Previous row on WS: what we did shows as the opposite on RS (purl→knit, knit→purl).
         So we compute previous_rs_appearance, then work the stitch that reproduces it this row.
+        On the wrong side we must invert (k→p, p→k) so the RS appearance is preserved.
         """
         if is_round:
             return prev_stitch  # in the round, always same as previous
@@ -81,7 +82,8 @@ class PatternParser:
         # This row: work the stitch that shows as prev_rs_appearance on the RS
         if side == "RS":
             return prev_rs_appearance  # knit to show knit, purl to show purl
-        return "p" if prev_rs_appearance == "k" else "k"  # WS: purl to show knit, knit to show purl
+        # WS: invert so RS appearance is preserved (purl to show knit, knit to show purl)
+        return "p" if prev_rs_appearance == "k" else "k"
     
     def expand_pattern(
         self,
