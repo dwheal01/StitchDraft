@@ -349,6 +349,34 @@
   margin-top: 6px;
   font-size: 11px;
   color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.torsoOverlayMeta__rotate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.torsoOverlayMeta__btn {
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.torsoOverlayMeta__btn:hover {
+  background: var(--bg-hover, #e5e7eb);
+}
+
+.torsoOverlayMeta__angle {
+  min-width: 2.5em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Full-screen overlay */

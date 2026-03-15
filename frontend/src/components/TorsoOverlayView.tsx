@@ -61,6 +61,7 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
   const [offset, setOffset] = useState<{ dx: number; dy: number }>({ dx: 0, dy: 0 })
   const [offsetAtStart, setOffsetAtStart] = useState<{ dx: number; dy: number }>({ dx: 0, dy: 0 })
+  const [rotation, setRotation] = useState(0) // degrees
 
   const { inner: torsoInner, viewBox: torsoViewBoxFromSvg } = useMemo(() => {
     if (!torso?.svg) return { inner: '', viewBox: undefined as string | undefined }
@@ -114,6 +115,15 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
   }, [nodes])
 
   const chartSnapshot = chartPngSnapshot ?? chartSnapshotSvg
+
+  const chartCenterInInches = useMemo(() => {
+    const ext = chartSnapshot?.extent ?? getChartExtent(nodes)
+    if (!ext || (!chartSnapshot && nodes.length === 0)) return { cx: 0, cy: 0 }
+    return {
+      cx: (ext.minX + ext.width / 2) / 96,
+      cy: (ext.minY + ext.height / 2) / 96,
+    }
+  }, [chartSnapshot, nodes])
 
   const clientToSvgPoint = useCallback((evt: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
     const svg = svgRef.current
@@ -192,10 +202,10 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
         {/* Torso base (in inches coordinate space) */}
         <g className="torsoOverlayTorso" dangerouslySetInnerHTML={{ __html: torsoInner }} />
 
-        {/* Chart overlay, draggable as a group: snapshot image when available, else circles */}
+        {/* Chart overlay, draggable as a group: snapshot image when available, else circles. Rotate around chart center. */}
         <g
           className="torsoOverlayChart"
-          transform={`translate(${offset.dx} ${offset.dy})`}
+          transform={`translate(${offset.dx} ${offset.dy}) translate(${chartCenterInInches.cx} ${chartCenterInInches.cy}) rotate(${rotation}) translate(${-chartCenterInInches.cx} ${-chartCenterInInches.cy})`}
           onMouseDown={onMouseDown}
           style={{
             cursor: dragging ? 'grabbing' : 'grab',
@@ -241,7 +251,33 @@ export function TorsoOverlayView({ torso, nodes }: Props) {
         ) : null}
       </svg>
       <div className="torsoOverlayMeta">
-        Torso: {torso.width.toFixed(2)}&quot; × {torso.height.toFixed(2)}&quot; | Chart overlay scale: engine units ÷ 96
+        <span>
+          Torso: {torso.width.toFixed(2)}&quot; × {torso.height.toFixed(2)}&quot; | Chart: engine units ÷ 96
+        </span>
+        {nodes.length > 0 ? (
+          <span className="torsoOverlayMeta__rotate">
+            Rotate chart:{' '}
+            <button
+              type="button"
+              className="torsoOverlayMeta__btn"
+              onClick={() => setRotation((r) => r - 15)}
+              title="Rotate left 15°"
+              aria-label="Rotate chart left 15 degrees"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              className="torsoOverlayMeta__btn"
+              onClick={() => setRotation((r) => r + 15)}
+              title="Rotate right 15°"
+              aria-label="Rotate chart right 15 degrees"
+            >
+              →
+            </button>
+            <span className="torsoOverlayMeta__angle">{rotation}°</span>
+          </span>
+        ) : null}
       </div>
     </div>
   )
