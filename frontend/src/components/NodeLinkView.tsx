@@ -127,8 +127,16 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
       const heightUnits = maxNodeY - minNodeY
 
       const UNITS_PER_INCH = 96
-      const widthInches = Math.abs(widthUnits) / UNITS_PER_INCH
-      const heightInches = Math.abs(heightUnits) / UNITS_PER_INCH
+      // Report fabric width/height: center-to-center span plus one spacing at the end
+      // so e.g. 44 sts at 22 sts/4" shows 8" not (44-1)/44 * 8" ≈ 7.82".
+      const widthInches =
+        numStitches > 1
+          ? (Math.abs(widthUnits) / UNITS_PER_INCH) * (numStitches / (numStitches - 1))
+          : Math.abs(widthUnits) / UNITS_PER_INCH
+      const heightInches =
+        numRows > 1
+          ? (Math.abs(heightUnits) / UNITS_PER_INCH) * (numRows / (numRows - 1))
+          : Math.abs(heightUnits) / UNITS_PER_INCH
 
       setMeasurement({
         numStitches,

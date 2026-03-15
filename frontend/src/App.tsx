@@ -111,7 +111,7 @@ function App() {
             </div>
           ) : null}
 
-          {isPreviewLoading && compiled && compileErrors.length === 0 ? (
+          {isPreviewLoading && !preview && compiled && compileErrors.length === 0 ? (
             <div className="preview">
               {compiled.charts.map((ch) => (
                 <div key={ch.name} className="preview__chart preview__chart--loading">
@@ -133,7 +133,9 @@ function App() {
                   <div className="preview__chartHeader">
                     <div className="preview__chartName">{c.chartName}</div>
                     <div className="preview__chartMeta">
-                      <span className="preview__chartStatus">Ready</span>
+                      <span className="preview__chartStatus">
+                        {isPreviewLoading ? 'Updating…' : 'Ready'}
+                      </span>
                       {' · '}
                       {c.rows.length} row(s), {c.currentStitchCount} st(s)
                     </div>
