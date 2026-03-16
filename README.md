@@ -15,7 +15,7 @@ All Python dependencies are installed via `pip`, and frontend dependencies via `
 
 ## Quick start – run backend and frontend
 
-From the project root (`project-20252601-diana_final_project/`):
+From the project root (`StitchDraft/`):
 
 ### 1. Create and activate a Python virtualenv (recommended)
 
