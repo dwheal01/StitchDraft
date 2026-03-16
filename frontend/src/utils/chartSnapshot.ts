@@ -11,7 +11,46 @@ export type ChartNode = {
   row: number
 }
 
-const PADDING = 40
+const DEFAULT_PADDING = 40
+const MIN_PADDING = 12
+const MAX_PADDING = 32
+
+export type ChartStyle = {
+  padding: number
+  radiusStitch: number
+  radiusOther: number
+}
+
+/**
+ * Derives padding and circle radii from chart density so nodes scale with gauge
+ * and there is less white space when the chart is dense.
+ */
+export function getChartStyle(nodes: ChartNode[]): ChartStyle {
+  const stitchNodes = nodes.filter((n) => n.type.toLowerCase() !== 'strand')
+  if (stitchNodes.length === 0) {
+    return { padding: DEFAULT_PADDING, radiusStitch: 5, radiusOther: 3 }
+  }
+  const minX = Math.min(...stitchNodes.map((n) => n.x))
+  const maxX = Math.max(...stitchNodes.map((n) => n.x))
+  const minY = Math.min(...stitchNodes.map((n) => n.y))
+  const maxY = Math.max(...stitchNodes.map((n) => n.y))
+  const contentWidth = maxX - minX
+  const contentHeight = maxY - minY
+  const rowCounts: Record<number, number> = {}
+  for (const n of stitchNodes) {
+    rowCounts[n.row] = (rowCounts[n.row] ?? 0) + 1
+  }
+  const numRows = Object.keys(rowCounts).length
+  const numStitches = Math.max(0, ...Object.values(rowCounts))
+  const spacingX = numStitches > 1 ? contentWidth / (numStitches - 1) : contentWidth || 20
+  const spacingY = numRows > 1 ? contentHeight / (numRows - 1) : contentHeight || 20
+  const baseSpacing = Math.min(spacingX, spacingY) || 20
+  const radiusStitch = Math.max(2, Math.min(14, baseSpacing * 0.42))
+  const radiusOther = radiusStitch * 0.6
+  const contentMin = Math.min(contentWidth, contentHeight)
+  const padding = Math.max(MIN_PADDING, Math.min(MAX_PADDING, Math.max(16, contentMin * 0.06)))
+  return { padding, radiusStitch, radiusOther }
+}
 
 function colorForType(t: string): string {
   const key = t.toLowerCase()
@@ -43,18 +82,19 @@ export function chartToSvgString(nodes: ChartNode[]): string {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150"></svg>`
   }
 
+  const { padding, radiusStitch, radiusOther } = getChartStyle(nodes)
   const minX = Math.min(...nodes.map((n) => n.x))
   const maxX = Math.max(...nodes.map((n) => n.x))
   const minY = Math.min(...nodes.map((n) => n.y))
   const maxY = Math.max(...nodes.map((n) => n.y))
-  const width = Math.max(200, maxX - minX + PADDING * 2)
-  const height = Math.max(150, maxY - minY + PADDING * 2)
-  const viewBox = `${minX - PADDING} ${minY - PADDING} ${width} ${height}`
+  const width = Math.max(200, maxX - minX + padding * 2)
+  const height = Math.max(150, maxY - minY + padding * 2)
+  const viewBox = `${minX - padding} ${minY - padding} ${width} ${height}`
 
   const circles = nodes
     .filter((n) => n.type.toLowerCase() !== 'strand')
     .map((n) => {
-      const r = ['k', 'p', 'co', 'inc', 'dec'].includes(n.type.toLowerCase()) ? 5 : 3
+      const r = ['k', 'p', 'co', 'inc', 'dec'].includes(n.type.toLowerCase()) ? radiusStitch : radiusOther
       const fill = colorForType(n.type)
       return `<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${escapeXml(fill)}" stroke="#111827" stroke-width="0.5" opacity="0.9"/>`
     })
@@ -75,15 +115,16 @@ export type ChartExtent = {
  */
 export function getChartExtent(nodes: ChartNode[]): ChartExtent | null {
   if (nodes.length === 0) return null
+  const { padding } = getChartStyle(nodes)
   const minX = Math.min(...nodes.map((n) => n.x))
   const maxX = Math.max(...nodes.map((n) => n.x))
   const minY = Math.min(...nodes.map((n) => n.y))
   const maxY = Math.max(...nodes.map((n) => n.y))
-  const width = Math.max(200, maxX - minX + PADDING * 2)
-  const height = Math.max(150, maxY - minY + PADDING * 2)
+  const width = Math.max(200, maxX - minX + padding * 2)
+  const height = Math.max(150, maxY - minY + padding * 2)
   return {
-    minX: minX - PADDING,
-    minY: minY - PADDING,
+    minX: minX - padding,
+    minY: minY - padding,
     width,
     height,
   }

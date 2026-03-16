@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { chartToDataUrl, getChartExtent } from '../utils/chartSnapshot'
+import { chartToDataUrl, getChartExtent, getChartStyle } from '../utils/chartSnapshot'
 
 type NodeVm = {
   id: string
@@ -46,9 +46,11 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
   const [panStart, setPanStart] = useState<{ x: number; y: number } | null>(null)
   const [panAtStart, setPanAtStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
 
+  const chartStyle = useMemo(() => getChartStyle(nodes), [nodes])
+
   const { viewBox } = useMemo(() => {
-    const padding = 40
     if (!nodes.length) return { viewBox: '0 0 200 150' }
+    const { padding } = chartStyle
     const minX = Math.min(...nodes.map((n) => n.x))
     const maxX = Math.max(...nodes.map((n) => n.x))
     const minY = Math.min(...nodes.map((n) => n.y))
@@ -56,7 +58,7 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
     const width = Math.max(200, maxX - minX + padding * 2)
     const height = Math.max(150, maxY - minY + padding * 2)
     return { viewBox: `${minX - padding} ${minY - padding} ${width} ${height}` }
-  }, [nodes])
+  }, [nodes, chartStyle])
 
   const chartSnapshot = useMemo(() => {
     if (!allowPan || !nodes.length) return null
@@ -306,7 +308,11 @@ export function NodeLinkView({ nodes, allowPan = false }: Props) {
                   key={n.id}
                   cx={n.x}
                   cy={n.y}
-                  r={n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec' ? 5 : 3}
+                  r={
+                    n.type === 'k' || n.type === 'p' || n.type === 'co' || n.type === 'inc' || n.type === 'dec'
+                      ? chartStyle.radiusStitch
+                      : chartStyle.radiusOther
+                  }
                   fill={colorForType(n.type)}
                   stroke={n.type === 'strand' ? 'none' : '#111827'}
                   strokeWidth={0.5}
