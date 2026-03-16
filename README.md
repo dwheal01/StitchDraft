@@ -1,206 +1,163 @@
-# Knitting Pattern Visualization Project
+# StitchDraft – Knitting Pattern Visualization
 
-A layered architecture application that generates visual representations of knitting patterns by parsing pattern instructions and creating interactive charts.
+StitchDraft is a block-based system for authoring and visualizing knitting patterns.  
+Users build patterns with Blockly, the frontend compiles them to a knitting-specific IR, and the backend engine executes that IR to generate stitch-level charts that can be overlaid on a proportional torso silhouette.
 
-## Contributors
+This README explains how to clone the repo, run the backend and frontend, and where the main pieces live.
 
-Diana Whealan
+## Prerequisites
 
-## Architecture
+- **Python**: 3.10+ recommended
+- **Node.js**: 18+ (for the React/Vite frontend)
+- **npm** (or `pnpm`/`yarn` if you prefer and adjust commands accordingly)
 
-This project follows a **3-layer architecture**:
+All Python dependencies are installed via `pip`, and frontend dependencies via `npm`.
 
-- **Presentation Layer**: ViewModels, Mappers, and JavaScript visualization components
-- **Domain Layer**: Business logic, pattern processing, chart generation, and validation
-- **Data Layer**: Data models, persistence, and serialization
+## Quick start – run backend and frontend
 
-See `docs/refactored_design.uml` for the complete architecture diagram. Additional design documentation is available in `docs/design/`.
+From the project root (`project-20252601-diana_final_project/`):
 
-## Dependencies
-
-- **Python 3.x**
-- **External Libraries**: None (pure Python implementation)
-- **JavaScript**: D3.js (for visualization in HTML)
-
-## Project Structure
-
-project-20252601-diana*final_project/
-├── engine/ # Main application code
-│ ├── main.py # Application entry point
-│ ├── chart_section.py # Core chart orchestration class
-│ ├── run_all_tests.py # Test runner for all test files
-│ ├── domain/ # Domain layer (business logic)
-│ │ ├── factories/ # Factory pattern implementations
-│ │ ├── interfaces/ # Interface definitions
-│ │ ├── models/ # Domain models and managers
-│ │ │ ├── operations/ # Command pattern operations
-│ │ │ ├── validation/ # Chain of Responsibility validators
-│ │ │ └── validators/ # Validation logic
-│ │ └── services/ # Service layer
-│ ├── data/ # Data layer
-│ │ ├── models/ # Data transfer objects
-│ │ └── repositories/ # Data persistence
-│ ├── presentation/ # Presentation layer
-│ │ ├── viewmodels/ # View models
-│ │ ├── mappers/ # ViewModel mappers
-│ │ ├── observers/ # Observer pattern implementations
-│ │ └── services/ # Presentation services
-│ └── test*\*.py # Test files (see Running Tests section)
-├── presentation/ # Legacy HTML visualizations (superseded by React frontend)
-└── docs/ # Documentation
-├── refactored_design.uml # Architecture diagram
-└── design/ # Additional design documentation
-
-## Design Patterns
-
-The project implements several design patterns:
-
-- **Factory Pattern**: `ChartSectionFactory` creates and wires all dependencies
-- **Command Pattern**: Operations (`CastOnOperation`, `AddRowOperation`, `JoinOperation`, `PlaceOnHoldOperation`, `PlaceOnNeedleOperation`, etc.) encapsulate chart operations
-- **Chain of Responsibility**: Validation handlers process validation requests in sequence
-- **Observer Pattern**: `ChartVisualizationObserver` updates visualization on chart state changes
-- **Builder Pattern**: `ValidationChainBuilder` constructs validation chains
-- **Dependency Injection**: All dependencies are injected into `ChartSection`
-
-## Build Instructions
-
-1. **Clone the repository**
-2. **Navigate to the project directory**
-3. **Run the application**:
-   ```bash
-   python engine/main.py
-   ```
-   This will:
-
-- Create chart sections using `ChartService`
-- Process knitting patterns
-- Export JSON data to `engine/charts.json` and individual chart files
-
-## Code Entry Points
-
-### Main Application
-
-- **`engine/main.py`** - Main script that uses `ChartService` to create charts, process patterns, and export JSON data
-
-### Example Usage
-
-The refactored code uses the service layer and factory pattern:
-
-```python
-from engine.domain.services.chart_service import ChartService
-from engine.data.repositories.chart_repository import ChartRepository
-
-# Initialize service layer
-repository = ChartRepository(data_path="engine")
-chart_service = ChartService(chart_repository=repository)
-
-# Create a chart using the service (factory creates ChartSection internally)
-raglan = chart_service.create_chart(name="raglan", start_side="RS", sts=23, rows=21)
-
-# Build the chart
-raglan.cast_on_start(122)
-raglan.repeat_rounds(["repeat(k1, p1)"], 15)
-raglan.add_round("bo4, repeat(k1), rm").place_on_hold()
-# ... additional pattern instructions ...
-
-# Save charts
-chart_service.save_charts([raglan])
-```
-
-**Note**: `ChartSection` should be created through `ChartService` (which uses `ChartSectionFactory`). Direct instantiation is not supported in the refactored architecture.
-
-## Running Tests
-
-Run all tests:
+### 1. Create and activate a Python virtualenv (recommended)
 
 ```bash
-python engine/run_all_tests.py
+python -m venv .venv
+source .venv/bin/activate  # on Windows: .venv\Scripts\activate
 ```
 
-Individual test files:
+### 2. Install backend + engine dependencies
 
-- `test_factory.py` - Tests factory pattern
-- `test_refactored_chart_section.py` - Tests refactored ChartSection
-- `test_service_integration.py` - Tests service layer
-- `test_chart_service_complete.py` - Tests complete chart service functionality
-- `test_validation_infrastructure.py` - Tests validation system
-- `test_pattern_processor.py` - Tests pattern processing
-- `test_pattern_parser_refactor.py` - Tests pattern parser refactoring
-- `test_view_models.py` - Tests presentation layer
+```bash
+pip install -r backend/requirements.txt
+```
 
-Additional test files:
+> If `requirements.txt` is missing or you changed dependencies, inspect `backend/app` and `engine/` and install the needed packages manually (e.g. `fastapi`, `uvicorn`, `pydantic`, etc.).
 
-- `test_large_pattern_stitch_counts.py` - Tests stitch counting for large patterns
-- `test_repeat_fix.py` - Tests repeat pattern fixes
+### 3. Run the backend API (FastAPI)
 
-## JSON Export Location
+From the project root:
 
-The application exports JSON data in two formats:
+```bash
+uvicorn backend.app.main:app --reload --port 8000
+```
 
-1. **Master file**: `engine/charts.json`
+This starts the API at `http://localhost:8000` with the following main endpoints:
 
-   - Contains all chart sections in a single file
-   - Uses ViewModels for presentation layer compatibility
-   - Structure: `{"charts": [{"name": "...", "nodes": [...], "links": [...]}, ...]}`
+- `GET /healthz` – simple health check
+- `POST /preview` – accepts a `KnittingIR` JSON payload and returns chart previews (nodes, links, rows, markers, errors/warnings)
+- `GET /torso/sizes` – returns Craft Yarn Council body measurements by size
+- `POST /torso/svg` – generates a torso SVG (either by size or by custom measurements)
 
-2. **Individual chart files**: `engine/{chart_name}.json`
-   - One file per chart section when saved by the service
-   - Structure: `{"name": "...", "nodes": [...], "links": [...]}`
+The backend uses the **engine** package (`engine/`) as a library for chart execution and geometry. It does not persist anything; all charts are built in memory per request.
 
-Sample chart JSONs used in this project are stored under `engine/examples/` (for example, `raglan.json`, `raglan_back.json`, `sleeve.json`, `lobster_back.json`, `join_demo.json`). Both formats are written to the `engine/` directory when you run `main.py`.
+### 4. Install frontend dependencies
 
-## Frontend visualizer
+From the `frontend/` directory:
 
-The original D3-based HTML visualizer in `presentation/` has been replaced by the React/Vite app in `frontend/`.
-Use the React app as the primary way to explore and debug charts.
+```bash
+cd frontend
+npm install
+```
 
-## Key Components
+### 5. Run the frontend (Vite dev server)
 
-### Service Layer
+Still inside `frontend/`:
 
-- **`ChartService`**: Main service for chart operations
-- **`ChartVisualizationService`**: Service for visualization concerns
+```bash
+npm run dev
+```
 
-### Domain Layer
+By default Vite serves the app at `http://localhost:5173`.
 
-- **`ChartSection`**: Core chart orchestration (uses dependency injection)
-- **`PatternProcessor`**: Processes and validates patterns
-- **`PatternParser`**: Parses pattern instructions
-- **`ChartGenerator`**: Generates nodes and links
-- **`ChartQueries`**: Query interface for chart data
-- **`OperationRegistry`**: Manages chart operations (Command pattern)
-- **`ValidationHandler`**: Chain of Responsibility for validation
-- **`NodeManager`**: Manages chart nodes
-- **`LinkManager`**: Manages chart links
-- **`RowManager`**: Manages chart rows
-- **`MarkerManager`**: Manages stitch markers
-- **`StitchCounter`**: Tracks stitch counts
-- **`PositionCalculator`**: Calculates stitch positions
+The frontend is configured to talk to the backend via a relative URL (`/preview`, `/torso/svg`, etc.), and the Vite dev server proxies to `http://localhost:8000`. If you run the backend on a different host/port, set:
 
-#### Operations (Command Pattern)
+```bash
+export VITE_API_BASE_URL="http://localhost:8000"
+```
 
-- **`CastOnOperation`**: Cast-on operations
-- **`CastOnAdditionalOperation`**: Additional cast-on operations
-- **`AddRowOperation`**: Add row operations
-- **`JoinOperation`**: Join chart operations
-- **`PlaceOnHoldOperation`**: Place stitches on hold
-- **`PlaceOnNeedleOperation`**: Place stitches back on needle
+before running `npm run dev`, so the frontend sends requests to the correct base URL.
 
-### Data Layer
+Once both servers are running:
 
-- **`ChartRepository`**: Persists and loads chart data
-- **`ChartDataSerializer`**: Serializes charts with deterministic ordering
-- **`ChartDataValidator`**: Validates chart data structure
+- Open `http://localhost:5173` in your browser.
+- Use the **Blockly** workspace to add a `Chart` block and commands.
+- The **Preview** panel will automatically compile the workspace to IR, call `/preview`, and show:
+  - a node-link chart (`NodeLinkView`)
+  - per-row metadata and markers
+  - optional torso overlay (`TorsoOverlayView`) once you generate a torso in the panel.
 
-### Presentation Layer
+## Project structure (high-level)
 
-- **`ChartViewModel`**, **`NodeViewModel`**, **`LinkViewModel`**: Presentation models
-- **`ViewModelMapper`**: Maps domain/data models to view models
-- **`ChartVisualizationObserver`**: Observer for real-time visualization updates
+At the top level:
 
-## Future Work
+- `backend/` – FastAPI app and IR/preview/torso models
+  - `app/main.py` – API entrypoint (`/preview`, `/torso/svg`, `/torso/sizes`, `/healthz`)
+  - `app/engine_adapter.py` – glue between IR (`KnittingIR`) and the engine (`ChartService`, `ChartSection`)
+  - `app/ir_models.py` – Pydantic models for the knitting IR (commands like `add_row`, `join`, `place_on_hold`, etc.)
+  - `app/preview_models.py` – Pydantic models for the preview response (`ChartPreview`, `NodeView`, `LinkView`, `RowMeta`, markers, errors/warnings)
+  - `app/torso_generator.py` – SVG torso generator (uses Craft Yarn Council measurements or custom inputs)
+  - `app/torso_models.py` – Pydantic models for torso requests/responses
 
-The following components are planned for future implementation:
+- `engine/` – reusable chart engine library (no HTTP)
+  - `chart_section.py` – core orchestration class for one chart; coordinates row manager, node manager, marker manager, pattern parser, position calculator, chart generator, etc.
+  - `domain/` – domain logic
+    - `factories/chart_section_factory.py` – builds fully-wired `ChartSection` instances
+    - `models/pattern_parser.py` – stitch-level DSL parser (`k`, `p`, `inc`, `dec`, `repeat(...)`, `work est`, segmenting by markers)
+    - `models/validators/pattern_validator.py` – fast token/parenthesis validation for pattern strings
+    - `models/chart_generator.py` – converts expanded rows into nodes/links using `PositionCalculator`
+    - `models/position_calculator.py` – computes node positions from gauge and previous-row geometry (96 units per inch)
+    - `models/operations/` – command pattern operations (`AddRowOperation`, `CastOnOperation`, `JoinOperation`, `PlaceOnHoldOperation`, etc.)
+    - managers: `RowManager`, `NodeManager`, `LinkManager`, `MarkerManager`, `StitchCounter`
+  - `data/` – simple DTOs and serializers
+    - `models/chart_data.py` – `ChartData` (name, nodes, links)
+    - `repositories/chart_data_serializer.py` – converts `ChartSection` → `ChartData`
+  - `presentation/` – internal view models and mappers used by the backend to produce API-friendly node/link shapes
 
-- `ShortRowOperation` - Operation for short row patterns
-- `IBodyFormTemplate` & `BodyFormTemplateRenderer` - Body form template system
+- `frontend/` – React + TypeScript + Vite app (primary UI)
+  - `src/ir/types.ts` – TypeScript definitions for the IR (`KnittingIR`, `ChartProgram`, `KnittingCommand`)
+  - `src/blockly/` – Blockly integration
+    - `registerBlocks.ts` – knitting-specific blocks (chart, add row/round, repeat rows/rounds, markers, holds, joins)
+    - `toolbox.ts` – toolbox configuration
+    - `compileToIr.ts` – compiler from Blockly workspace → `KnittingIR` (JSON)
+  - `src/api/client.ts` – small API client:
+    - `fetchPreview(ir)` – calls `POST /preview`
+    - `fetchTorsoSizes()` – calls `GET /torso/sizes`
+    - `fetchTorsoSvg(req)` – calls `POST /torso/svg`
+  - `src/components/BlocklyWorkspace.tsx` – mounts Blockly and emits compiled IR on changes
+  - `src/components/NodeLinkView.tsx` – SVG node-link chart view with selection-based measurement
+  - `src/components/TorsoControls.tsx` – controls for generating torsos (size/custom + ease)
+  - `src/components/TorsoOverlayView.tsx` – overlay chart (converted to inches) on torso SVG with drag + rotation
+  - `src/utils/chartSnapshot.ts` – builds snapshot SVG/PNG of a chart from node positions and types
+  - `src/App.tsx` – top-level app wiring workspace → IR → preview → chart + torso views
+
+- `docs/` – technical report and diagrams
+  - `technical_report.md` – main writeup
+  - `refactored_design.uml` – internal architecture diagram
+
+## Running tests
+
+The engine and backend ship with Python tests under `engine/`. To run all tests:
+
+```bash
+cd engine
+python -m pytest
+```
+
+If you prefer the legacy test runner:
+
+```bash
+python run_all_tests.py
+```
+
+This exercises the pattern parser, stitch counting, operations, and integration flow from `ChartService` down through `ChartSection`.
+
+## Notes for contributors
+
+- The **IR** (`KnittingIR`) is the stable contract between the Blockly frontend and the backend engine. If you add new commands or fields, update:
+  - `frontend/src/ir/types.ts`
+  - `frontend/src/blockly/compileToIr.ts`
+  - `backend/app/ir_models.py`
+  - `backend/app/engine_adapter.py`
+- The engine is deliberately **framework-agnostic**: it has no FastAPI or React imports. All web integration lives in `backend/app`.
+- The legacy D3-based HTML visualizations under `presentation/` are no longer the primary UI; use the React frontend in `frontend/` instead.
+
+For deeper design details, see `docs/technical_report.md` and `docs/refactored_design.uml`.
