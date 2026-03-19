@@ -3,6 +3,8 @@ from typing import List
 from engine.data.models.validation_results import ValidationResult
 from engine.data.models.validation_request import ValidationRequest
 from engine.data.models.pattern_context import PatternContext
+from engine.domain.models.marker_manager import MarkerManager
+from engine.domain.models.pattern_parser import PatternParser
 
 # Must match PatternParser.CONSUME_PRODUCE only. Do not add yo, k2tog, ssk (not in parser).
 VALID_PATTERN_OPERATIONS = frozenset({
@@ -42,15 +44,14 @@ class PatternValidator:
         
         # Normalize "work est", "cont as est", etc. to single tokens so _split_tokens doesn't break them
         pattern = self._normalize_work_est_in_pattern(pattern)
-        # Validate that pattern doesn't exceed available stitches
-        # This is a simplified check - actual parsing happens in PatternParser
         tokens = self._split_tokens(pattern)
-        total_stitches = self._estimate_stitches(tokens, context.available_stitches)
-        
-        if total_stitches > context.available_stitches:
-            errors.append(
-                f"Pattern requires {total_stitches} stitches but only {context.available_stitches} available"
-            )
+
+        # Validate stitch consumption using the real PatternParser logic (including repeat(...)).
+        # This keeps validation consistent with execution.
+        try:
+            self._estimate_stitches(pattern, context)
+        except ValueError as e:
+            errors.append(str(e))
 
         # Token-level validation
         token_result = self.validate_tokens(tokens)
@@ -125,8 +126,29 @@ class PatternValidator:
             tokens.append(current_token.strip())
         return tokens
     
-    def _estimate_stitches(self, tokens: List[str], available: int) -> int:
-        """Estimate stitches needed (simplified - doesn't handle repeats)."""
-        # This is a very simplified estimate
-        # Real validation would need full pattern parsing
-        return len(tokens)  # Rough estimate
+    def _estimate_stitches(self, pattern: str, context: PatternContext) -> int:
+        """
+        Estimate stitches consumed using PatternParser.
+
+        Note: the parser returns the number of stitches consumed from the current needle segment(s).
+        It may be less than available (e.g. bind-offs) but will raise if consumption exceeds availability.
+        """
+        marker_manager = MarkerManager()
+        for m in (getattr(context, "markers", None) or []):
+            try:
+                marker_manager.add_marker(context.side, int(m), context.available_stitches)
+            except Exception:
+                # If a marker is malformed, let the parser/other validation handle it later.
+                continue
+
+        parser = PatternParser(marker_provider=marker_manager)
+        last_row = getattr(context, "last_row", None)
+        is_round = getattr(context, "is_round", False)
+        expanded = parser.expand_pattern(
+            pattern=pattern,
+            available_stitches=context.available_stitches,
+            side=context.side,
+            last_row=last_row,
+            is_round=is_round,
+        )
+        return expanded.consumed
