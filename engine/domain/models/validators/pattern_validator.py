@@ -34,9 +34,10 @@ class PatternValidator:
         """
         errors = []
         
+        # Allow empty/whitespace patterns as a "work nothing" row/segment.
+        # This is useful for leaving stitches unconsumed on the needle.
         if not pattern or not pattern.strip():
-            errors.append("Pattern cannot be empty")
-            return ValidationResult(is_valid=False, errors=errors)
+            return ValidationResult(is_valid=True, errors=[])
         
         # Basic validation: check for balanced parentheses in repeat statements
         if pattern.count('(') != pattern.count(')'):
